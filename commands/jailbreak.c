@@ -24,16 +24,30 @@ along with this program; see the file COPYING. If not, see
 
 
 /**
- * Escape application sandbox and raise privileges.
+ * Escape application sandbox.
  **/
 int
 main_jailbreak(int argc, char **argv) {
   char cwd[PATH_MAX];
+  intptr_t vnode;
 
-  kernel_set_proc_rootdir(getpid(), kernel_get_root_vnode());
+  if(!(vnode=kernel_get_root_vnode())) {
+    fprintf(stderr, "Unable to obtain root vnode\n");
+    return -1;
+  }
+
+  if(kernel_set_proc_rootdir(getpid(), vnode)) {
+    fprintf(stderr, "Unable to update root vnode\n");
+    return -1;
+  }
 
   setenv("OLDPWD", getenv("PWD"), 1);
-  setenv("PWD", getcwd(cwd, sizeof cwd), 1);
+  if(!getcwd(cwd, sizeof(cwd))) {
+    chdir("/");
+    setenv("PWD", "/", 1);
+  } else {
+    setenv("PWD", cwd, 1);
+  }
 
   return 0;
 }
