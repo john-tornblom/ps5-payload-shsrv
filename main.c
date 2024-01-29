@@ -22,6 +22,7 @@ along with this program; see the file COPYING. If not, see
 #include <netinet/in.h>
 #include <pthread.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -52,6 +53,21 @@ int sceKernelSendNotificationRequest(int, notify_request_t*, size_t, int);
 int sceKernelSetProcessName(const char*);
 
 
+static void
+notify(const char *fmt, ...) {
+  notify_request_t req;
+  va_list args;
+
+  bzero(&req, sizeof req);
+  va_start(args, fmt);
+  vsnprintf(req.message, sizeof req.message, fmt, args);
+  va_end(args);
+
+  sceKernelSendNotificationRequest(0, &req, sizeof req, 0);
+  printf("%s\n", req.message);
+}
+
+
 static int
 init_client(int fd) {
   for(int i=0; i<1024; i++) {
@@ -59,15 +75,15 @@ init_client(int fd) {
       close(i);
     }
   }
-  
+
   if(dup2(fd, STDIN_FILENO) < 0) {
     return -1;
   }
-    
+
   if(dup2(fd, STDOUT_FILENO) < 0) {
     return -1;
   }
-  
+
   if(dup2(fd, STDERR_FILENO) < 0) {
     return -1;
   }
@@ -82,9 +98,7 @@ init_client(int fd) {
  **/
 static void
 spawn_client(int master, int slave) {
-  pid_t pid = syscall(SYS_fork);
-  
-  if (pid == 0) {
+  if (!syscall(SYS_rfork, RFPROC | RFNOWAIT | RFFDG)) {
     close(master);
     if(init_client(slave)) {
       _exit(errno);
@@ -106,7 +120,6 @@ serve_shell(uint16_t port) {
   struct sockaddr_in client_addr;
   char ip[INET_ADDRSTRLEN];
   struct ifaddrs *ifaddr;
-  notify_request_t req;
   int ifaddr_wait = 1;
   socklen_t addr_len;
   int connfd;
@@ -116,8 +129,6 @@ serve_shell(uint16_t port) {
     perror("[shsrv.elf] getifaddrs");
     _exit(EXIT_FAILURE);
   }
-
-  signal(SIGPIPE, SIG_IGN);
 
   // Enumerate all AF_INET IPs
   for(struct ifaddrs *ifa=ifaddr; ifa!=NULL; ifa=ifa->ifa_next) {
@@ -133,10 +144,6 @@ serve_shell(uint16_t port) {
     if(!strncmp("lo", ifa->ifa_name, 2)) {
       continue;
     }
-    // skip interfaces without an IP
-    if(!strncmp("0.", ifa->ifa_name, 2)) {
-      continue;
-    }
 
     struct sockaddr_in *in = (struct sockaddr_in*)ifa->ifa_addr;
     inet_ntop(AF_INET, &(in->sin_addr), ip, sizeof(ip));
@@ -146,14 +153,8 @@ serve_shell(uint16_t port) {
       continue;
     }
 
-    bzero(&req, sizeof(req));
-    sprintf(req.message, "Serving shell on %s:%d (%s)", ip, port, ifa->ifa_name);
-    printf("[shsrv.elf] %s\n", req.message);
+    notify("Serving shell on %s:%d (%s)", ip, port, ifa->ifa_name);
     ifaddr_wait = 0;
-
-#ifdef __PROSPERO__
-    sceKernelSendNotificationRequest(0, &req, sizeof(req), 0);
-#endif
   }
 
   freeifaddrs(ifaddr);
@@ -163,12 +164,12 @@ serve_shell(uint16_t port) {
   }
 
   if((srvfd=socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-    perror("[shsrv.elf] socket");
+    perror("socket");
     return -1;
   }
 
   if(setsockopt(srvfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
-    perror("[shsrv.elf] setsockopt");
+    perror("setsockopt");
     return -1;
   }
 
@@ -178,12 +179,12 @@ serve_shell(uint16_t port) {
   server_addr.sin_port = htons(port);
 
   if(bind(srvfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) != 0) {
-    perror("[shsrv.elf] bind");
+    perror("bind");
     return -1;
   }
 
   if(listen(srvfd, 5) != 0) {
-    perror("[shsrv.elf] listen");
+    perror("listen");
     return -1;
   }
 
@@ -191,7 +192,7 @@ serve_shell(uint16_t port) {
 
   while(1) {
     if((connfd=accept(srvfd, (struct sockaddr*)&client_addr, &addr_len)) < 0) {
-      perror("[shsrv.elf] accept");
+      perror("accept");
       break;
     }
 
@@ -252,17 +253,14 @@ main(void) {
   if(syscall(SYS_rfork, RFPROC | RFNOWAIT | RFFDG)) {
     return 0;
   }
-
-  open("/dev/null", O_RDONLY);    // stdin
-  open("/dev/console", O_WRONLY); // stdout
-  open("/dev/console", O_WRONLY); // stderr
+  syscall(SYS_setsid); 
 
   if((pid=find_pid("shsrv.elf")) > 0) {
     kill(pid, SIGKILL);
     sleep(1);
   }
-  sceKernelSetProcessName("shsrv.elf");
 
+  sceKernelSetProcessName("shsrv.elf");
   while(1) {
     serve_shell(port);
     sleep(3);
