@@ -22,6 +22,7 @@ along with this program; see the file COPYING. If not, see
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <string.h>
 
 #include <ps5/kernel.h>
 
@@ -76,8 +77,7 @@ main_ps(int argc, char** argv) {
     ptr += ki->ki_structsize;
 
     if(sceKernelGetAppInfo(ki->ki_pid, &appinfo)) {
-      perror("sceKernelGetAppInfo");
-      continue;
+      memset(&appinfo, 0, sizeof(appinfo));
     }
 
     printf("%8u  %8u %8u %8u %8u %016lx   %11s   %5s  %04x    %5s  %s\n",
