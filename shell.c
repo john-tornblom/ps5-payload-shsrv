@@ -47,6 +47,7 @@ typedef struct sce_version {
 
 int  sceKernelSetProcessName(const char*);
 int  sceKernelGetSystemSwVersion(sce_version_t *);
+int  sceKernelGetProsperoSystemSwVersion(sce_version_t *);
 int  sceKernelGetHwModelName(char *);
 int  sceKernelGetHwSerialNumber(char *);
 long sceKernelGetCpuFrequency(void);
@@ -242,7 +243,7 @@ shell_greet(void) {
     printf("S/N:     %20s\n", s);
   }
   
-  if(sceKernelGetSystemSwVersion(&v)) {
+  if(sceKernelGetProsperoSystemSwVersion(&v)) {
     perror("sceKernelGetSystemSwVersion");
   } else {
     printf("S/W:     %20s\n", v.str_version);
@@ -260,7 +261,7 @@ shell_greet(void) {
     printf("CPU temp:               %d °C\n", temp);
   }
 
-  printf("CPU freq:            %2.2ld MHz\n",
+  printf("CPU freq:            %4ld MHz\n",
 	 sceKernelGetCpuFrequency() / (1000*1000));
   
   printf("\nType 'help' for a list of commands\n");
