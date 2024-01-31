@@ -38,6 +38,11 @@ main_mknod(int argc, const char ** argv) {
 
   mode = 0666;
 
+  if(argc < 3) {
+    fprintf(stderr, "%s: missing operand\n", argv[0]);
+    return -1;
+  }
+
   if(strcmp(argv[2], "b") == 0) {
     mode |= S_IFBLK;
   } else if (strcmp(argv[2], "c") == 0) {
@@ -71,7 +76,7 @@ main_mknod(int argc, const char ** argv) {
     return 1;
   }
 
-  if(syscall(SYS_mknod, argv[1], mode, major * 256 + minor) < 0) {
+  if(syscall(SYS_mknod, argv[1], mode, makedev(major, minor)) < 0) {
     perror(argv[1]);
     return 1;
   }
