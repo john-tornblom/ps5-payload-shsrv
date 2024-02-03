@@ -22,60 +22,12 @@ along with this program; see the file COPYING. If not, see
 #include <sys/uio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/_iovec.h>
+#include <sys/mount.h>
+#include <sys/syscall.h>
 
 #include "_common.h"
 
-
-#define SYS_nmount    378
-#define SYS_getfsstat 395
-
-#define MNT_UPDATE      0x0000000000010000ULL
-
-#define MNT_WAIT        1  /* synchronously wait for I/O to complete */
-#define MNT_NOWAIT      2  /* start all I/O, but do not wait for it */
-#define MNT_LAZY        3  /* push data not written by filesystem syncer */
-#define MNT_SUSPEND     4  /* Suspend file system after sync */
-
-#define MFSNAMELEN 16 /* length of type name including null */
-#define MNAMELEN 88   /* size of on/from name bufs */
-
-
-#ifdef __PROSPERO__
-
-/* filesystem id type */
-typedef struct fsid {
-  int32_t val[2];
-} fsid_t; 
-
-
-struct statfs {
-  uint32_t f_version;                /* structure version number */
-  uint32_t f_type;                   /* type of filesystem */
-  uint64_t f_flags;                  /* copy of mount exported flags */
-  uint64_t f_bsize;                  /* filesystem fragment size */
-  uint64_t f_iosize;                 /* optimal transfer block size */
-  uint64_t f_blocks;                 /* total data blocks in filesystem */
-  uint64_t f_bfree;                  /* free blocks in filesystem */
-  int64_t  f_bavail;                 /* free blocks avail to non-superuser */
-  uint64_t f_files;                  /* total file nodes in filesystem */
-  int64_t  f_ffree;                  /* free nodes avail to non-superuser */
-  uint64_t f_syncwrites;             /* count of sync writes since mount */
-  uint64_t f_asyncwrites;            /* count of async writes since mount */
-  uint64_t f_syncreads;              /* count of sync reads since mount */
-  uint64_t f_asyncreads;             /* count of async reads since mount */
-  uint64_t f_spare[10];              /* unused spare */
-  uint32_t f_namemax;                /* maximum filename length */
-  uid_t    f_owner;                  /* user that mounted the filesystem */
-  fsid_t   f_fsid;                   /* filesystem id */
-  char     f_charspare[80];          /* spare string space */
-  char     f_fstypename[MFSNAMELEN]; /* filesystem type name */
-  char     f_mntfromname[MNAMELEN];  /* mounted filesystem */
-  char     f_mntonname[MNAMELEN];    /* directory on which mounted */
-};
-
-#else
-#include <sys/statfs.h>
-#endif //__PROSPERO__
 
 
 static void
@@ -111,12 +63,13 @@ split_string(char *line, char *delim) {
   int position = 0;
   char **tokens = malloc(bufsize * sizeof(char*));
   char *token, **tokens_backup;
+  char *state = 0;
 
   if(!tokens) {
     return NULL;
   }
   
-  token = strtok(line, delim);
+  token = strtok_r(line, delim, &state);
   while(token != NULL) {
     tokens[position] = token;
     position++;
@@ -131,7 +84,7 @@ split_string(char *line, char *delim) {
       }
     }
     
-    token = strtok(NULL, delim);
+    token = strtok_r(NULL, delim, &state);
   }
   tokens[position] = NULL;
   return tokens;
@@ -165,12 +118,12 @@ mount_fs(char* fstype, char* fspath, char* device, char* options,
     build_iovec(&iov, &iovlen, name, value);
   }
   free(opts);
-  
+
   return syscall(SYS_nmount, iov, iovlen, flags);
 }
 
 
-static int
+int
 getmntinfo(struct statfs **bufp, int mode) {
   struct statfs *buf;
   int nitems = 0;
@@ -204,7 +157,6 @@ print_mountpoints(void) {
   struct statfs *buf;
   int nitems;
 
-#ifdef __PROSPERO__
   if((nitems = getmntinfo(&buf, MNT_WAIT)) < 0) {
     return -1;
   }
@@ -215,11 +167,9 @@ print_mountpoints(void) {
 	   buf[i].f_mntonname,
 	   buf[i].f_fstypename);
   }
-  
+
   free(buf);
 
-#endif
-  
   return 0;
 }
 
