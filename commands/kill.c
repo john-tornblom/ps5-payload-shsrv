@@ -25,44 +25,61 @@ along with this program; see the file COPYING. If not, see
 #include <unistd.h>
 
 
+static const char *const sigtab[] = {
+  "", "HUP", "INT", "QUIT", "ILL", "TRAP", "ABRT", "EMT", "FPE", "KILL", "BUS",
+  "SEGV", "SYS", "PIPE", "ALRM", "TERM", "URG", "STOP", "TSTP", "CONT", "CHLD",
+  "TTIN", "TTOU", "IO", "XCPU", "XFSZ", "VTALRM", "PROF", "WINCH", "INFO",
+  "USR1", "USR2"
+};
+
+
 static int
-str_isnumber(const char* s) {
-  char buf[6];
+parse_sig(const char *s) {
+  for(int i=1; i<sizeof(sigtab); i++) {
+    if(!strcmp(s, sigtab[i])) {
+      return i;
+    }
+  }
+
+  return atoi(s);
+}
+
+
+static int
+ispid(const char* s) {
+  char buf[7];
   snprintf(buf, sizeof buf, "%d", atoi(s));
+
   return strncmp(buf, s, sizeof buf) == 0;
 }
 
 
-/**
- * 
- **/
 int
 main_kill(int argc, char **argv) {
   pid_t pid;
   int sig = SIGTERM;
   int c;
-  
-while ((c = getopt(argc, argv, "s:")) != -1) {
-    switch (c) {
+
+  while((c=getopt(argc, argv, "s:")) != -1) {
+    switch(c) {
     case 's':
-      sig = atoi(optarg);
+      sig = parse_sig(optarg);
       break;
     }
   }
 
- if(optind >= argc || !str_isnumber(argv[optind])) {
-   printf("usage: %s [-s signum] <pid>\n", argv[0]);
-   return EXIT_FAILURE;
- }
+  if(optind >= argc || !ispid(argv[optind]) || !sig) {
+    printf("usage: %s [-s signum] <pid>\n", argv[0]);
+    return EXIT_FAILURE;
+  }
 
   pid = atoi(argv[optind]);
-  
+
   if(kill(pid, sig)) {
     perror(argv[0]);
     return -1;
   }
-    
+
   return 0;
 }
-
 
