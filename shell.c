@@ -186,7 +186,7 @@ shell_splitstring(char *line, char *delim) {
   int position = 0;
   char **tokens = calloc(bufsize, sizeof(char));
   char *token, **tokens_backup;
-  char *state;
+  char *state = 0;
   
   if(!tokens) {
     perror("calloc");
