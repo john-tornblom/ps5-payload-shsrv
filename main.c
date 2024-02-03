@@ -199,8 +199,8 @@ main(void) {
   pid_t pid;
 
   signal(SIGCHLD, SIG_IGN);
-  if(syscall(SYS_rfork, RFPROC | RFNOWAIT | RFFDG)) {
-    return 0;
+  if((pid=syscall(SYS_rfork, RFPROC | RFNOWAIT | RFFDG))) {
+    return pid;
   }
 
   signal(SIGCHLD, SIG_IGN);
