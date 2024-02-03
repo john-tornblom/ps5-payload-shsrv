@@ -362,10 +362,9 @@ shell_loop(void) {
   int infd = 0;
   int outfd = 1;
 
+  sceKernelSetProcessName("sh");
   setenv("HOME", "/", 0);
   setenv("PWD", "/", 0);
-  
-  sceKernelSetProcessName("shsrv.elf(shell)");
   shell_greet();
 
   while(running) {
