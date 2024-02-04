@@ -358,11 +358,11 @@ shell_which(const char* name, char* path) {
 static int
 shell_execute(char **argv) {
   char path[PATH_MAX];
+  pid_t pid = -1;
   int argc = 0;
   uint8_t* buf;
   FILE* file;
   long len;
-  int err;
 
   while(argv[argc]) {
     argc++;
@@ -425,7 +425,7 @@ shell_execute(char **argv) {
     return -1;
   }
 
-  err = elfldr_exec(buf, argv);
+  pid = elfldr_exec(buf, dup(STDOUT_FILENO), argv);
   free(buf);
 
   return err;
