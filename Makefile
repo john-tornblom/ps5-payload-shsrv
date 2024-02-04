@@ -29,6 +29,8 @@ LD := $(PS5_PAYLOAD_SDK)/host/x86_64-ps5-payload-ld
 CFLAGS := -std=gnu11 -Wall
 LDADD  := -lSceLibcInternal -lkernel_sys
 
+OBJS := main.o shell.o elfldr.o pt.o crashlog.o
+
 COMMANDS := $(wildcard commands/*.c)
 COMMANDS := $(COMMANDS:.c=.o)
 
@@ -38,7 +40,7 @@ all: $(ELF)
 %.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $^
 
-$(ELF): $(COMMANDS) main.o shell.o elfldr.o pt.o
+$(ELF): $(COMMANDS) $(OBJS)
 	$(LD) -o $@ $^ $(LDADD)
 
 clean:

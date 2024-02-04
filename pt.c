@@ -128,6 +128,16 @@ pt_continue(pid_t pid) {
 
 
 int
+pt_signal(pid_t pid, int signal) {
+  if(sys_ptrace(PT_CONTINUE, pid, (caddr_t)1, signal) == -1) {
+    return -1;
+  }
+
+  return 0;
+}
+
+
+int
 pt_getint(pid_t pid, intptr_t addr) {
   return sys_ptrace(PT_READ_D, pid, (caddr_t)addr, 0);
 }

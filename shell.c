@@ -21,6 +21,7 @@ along with this program; see the file COPYING. If not, see
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include <signal.h>
 #include <sys/syscall.h>
 #include <sys/wait.h>
 
@@ -29,8 +30,10 @@ along with this program; see the file COPYING. If not, see
 #endif
 
 #include "commands.h"
+#include "crashlog.h"
 #include "shell.h"
 #include "elfldr.h"
+#include "pt.h"
 
 
 #define SHELL_LINE_BUFSIZE 1024
@@ -303,7 +306,6 @@ shell_fork(main_t *main, int argc, char **argv) {
   } else if (pid < 0) {
     perror("fork");
     return -1;
-    
   } else {
     int status = 0;
     do {
@@ -351,13 +353,13 @@ shell_which(const char* name, char* path) {
 }
 
 
-
 /**
  * Execute a shell command.
  **/
 static int
 shell_execute(char **argv) {
   char path[PATH_MAX];
+  char reason[64];
   pid_t pid = -1;
   int status = 0;
   int argc = 0;
@@ -433,12 +435,13 @@ shell_execute(char **argv) {
     return pid;
   }
 
-  do {
-    waitpid(pid, &status, WUNTRACED);
-  } while(!WIFEXITED(status) && !WIFSIGNALED(status));
-
+  waitpid(pid, &status,  WTRAPPED | WUNTRACED);
   if(WIFEXITED(status)) {
     return WEXITSTATUS(status);
+  } else if(WIFSTOPPED(status)) {
+    sprintf(reason, "Received the fatal POSIX signal %d",  WSTOPSIG(status));
+    crashlog_backtrace(reason);
+    pt_signal(pid, SIGKILL);
   } else {
     return -1;
   }

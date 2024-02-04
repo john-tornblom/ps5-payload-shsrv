@@ -235,6 +235,7 @@ main(void) {
   }
 
   syscall(SYS_thr_set_name, -1, "shsrv.elf");
+  syscall(SYS_setsid);
   dup2(open("/dev/console", O_WRONLY), STDOUT_FILENO);
   dup2(open("/dev/console", O_WRONLY), STDERR_FILENO);
 
