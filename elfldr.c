@@ -596,36 +596,42 @@ elfldr_exec(uint8_t *elf, int stdio, char* argv[]) {
   //SceSpZeroConf
   if(sceKernelSpawn(&pid, 1, "/system/vsh/app/NPXS40112/eboot.bin", 0, argv)) {
     perror("sceKernelSpawn");
+    pt_setregs(pid, &r);
     pt_detach(pid);
     return -1;
   }
 
   if(!(brkpoint=kernel_dynlib_entry_addr(pid, 0))) {
     puts("[elfldr.elf] kernel_dynlib_entry_addr() failed");
+    pt_setregs(pid, &r);
     pt_detach(pid);
     return -1;
   }
 
   if(mdbg_copyin(pid, &int3instr, brkpoint, sizeof(int3instr))) {
     perror("[elfldr.elf] mdbg_copyin");
+    pt_setregs(pid, &r);
     pt_detach(pid);
     return -1;
   }
 
   if(pt_continue(pid)) {
     perror("[elfldr.elf] pt_continue");
+    pt_setregs(pid, &r);
     pt_detach(pid);
     return -1;
   }
 
   if(waitpid(pid, 0, 0) == -1) {
     perror("[elfldr.elf] waitpid");
+    pt_setregs(pid, &r);
     pt_detach(pid);
     return -1;
   }
-  
+
   if(elfldr_raise_privileges(pid)) {
     puts("[elfldr.elf] Unable to raise privileges");
+    pt_setregs(pid, &r);
     pt_detach(pid);
     return -1;
   }
