@@ -415,10 +415,9 @@ elfldr_prepare_exec(pid_t pid, uint8_t *elf) {
 
   r.r_rip = entry;
   r.r_rsi = pt_getint(pid, r.r_rdi); // argc
-  r.r_rdx = r.r_rdi + 0x8;           // argv;
+  r.r_rdx = r.r_rdi + 0x8;           // argv
   r.r_r10 = 0;                       // envp
   r.r_rdi = args;
-
   if(pt_setregs(pid, &r)) {
     perror("[elfldr.elf] pt_setregs");
     return -1;
