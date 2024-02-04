@@ -131,7 +131,7 @@ serve_shell(uint16_t port) {
       continue;
     }
     ifaddr_wait = 0;
-    notify("Serving shell on %s:%d (%s)\n", ip, port, ifa->ifa_name);
+    notify("Serving shell on %s:%d (%s)", ip, port, ifa->ifa_name);
   }
 
   freeifaddrs(ifaddr);
