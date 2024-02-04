@@ -50,7 +50,7 @@ int sceKernelSendNotificationRequest(int, notify_request_t*, size_t, int);
 
 
 /**
- * send a notification to the UI and stdout.
+ * Send a notification to the UI and stdout.
  **/
 static void
 notify(const char *fmt, ...) {
