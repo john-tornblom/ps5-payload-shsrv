@@ -204,12 +204,13 @@ main(void) {
   }
 
   signal(SIGCHLD, SIG_IGN);
-  if((pid=find_pid("shsrv.elf")) > 0) {
-    kill(pid, SIGKILL);
+  while((pid=find_pid("shsrv.elf")) > 0) {
+    if(kill(pid, SIGTERM)) {
+      perror("[shsrv.elf] kill");
+    }
     sleep(1);
   }
 
-  syscall(SYS_setsid);
   syscall(SYS_thr_set_name, -1, "shsrv.elf");
   dup2(open("/dev/console", O_WRONLY), STDOUT_FILENO);
   dup2(open("/dev/console", O_WRONLY), STDERR_FILENO);
