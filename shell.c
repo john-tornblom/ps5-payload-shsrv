@@ -359,6 +359,7 @@ static int
 shell_execute(char **argv) {
   char path[PATH_MAX];
   pid_t pid = -1;
+  int status = 0;
   int argc = 0;
   uint8_t* buf;
   FILE* file;
@@ -428,7 +429,21 @@ shell_execute(char **argv) {
   pid = elfldr_exec(buf, dup(STDOUT_FILENO), argv);
   free(buf);
 
-  return err;
+  if(pid < 0) {
+    return pid;
+  }
+
+  do {
+    waitpid(pid, &status, WUNTRACED);
+  } while(!WIFEXITED(status) && !WIFSIGNALED(status));
+
+  if(WIFEXITED(status)) {
+    return WEXITSTATUS(status);
+  } else {
+    return -1;
+  }
+
+  return 0;
 }
 
 
