@@ -282,7 +282,7 @@ shell_prompt(void) {
   if(!(cwd = getenv("PWD"))) {
     cwd = getcwd(buf, sizeof(buf));
   }
-  
+
   fprintf(stdout, "%s$ ", cwd ? cwd : "(null)");
   fflush(stdout);
 }
