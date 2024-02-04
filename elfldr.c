@@ -634,6 +634,7 @@ elfldr_exec(uint8_t *elf, int stdio, char* argv[]) {
     pt_setregs(pid, &r);
   }
 
+  elfldr_set_procname(pid, argv[0]);
   if(pt_detach(pid)) {
     perror("[elfldr.elf] pt_detach");
     return -1;
