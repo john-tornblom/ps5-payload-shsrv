@@ -20,6 +20,7 @@ along with this program; see the file COPYING. If not, see
 #include <ifaddrs.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,11 +31,40 @@ along with this program; see the file COPYING. If not, see
 
 #include <ps5/kernel.h>
 
-
 #include "shell.h"
 
 
-int sceKernelSetProcessName(const char*);
+/**
+ * Data structure used to send UI notifications on the PS5.
+ **/
+typedef struct notify_request {
+  char useless[45];
+  char message[3075];
+} notify_request_t;
+
+
+/**
+ * Send a UI notification request.
+ **/
+int sceKernelSendNotificationRequest(int, notify_request_t*, size_t, int);
+
+
+/**
+ * send a notification to the UI and stdout.
+ **/
+static void
+notify(const char *fmt, ...) {
+  notify_request_t req;
+  va_list args;
+
+  bzero(&req, sizeof req);
+  va_start(args, fmt);
+  vsnprintf(req.message, sizeof req.message, fmt, args);
+  va_end(args);
+
+  sceKernelSendNotificationRequest(0, &req, sizeof req, 0);
+  printf("[shsrv.elf] %s\n", req.message);
+}
 
 
 /**
@@ -42,13 +72,11 @@ int sceKernelSetProcessName(const char*);
  **/
 static void
 spawn_shell(int srvfd, int fd) {
-  if(syscall(SYS_rfork, RFPROC | RFNOWAIT | RFFDG)) {
+  if(syscall(SYS_fork)) {
     return;
   }
 
-  syscall(SYS_setsid);
-  sceKernelSetProcessName("sh");
-
+  syscall(SYS_thr_set_name, -1, "sh");
   dup2(fd, STDIN_FILENO);
   dup2(fd, STDOUT_FILENO);
   dup2(fd, STDERR_FILENO);
@@ -103,7 +131,7 @@ serve_shell(uint16_t port) {
       continue;
     }
     ifaddr_wait = 0;
-    printf("[shsrv.elf] Serving shell on %s:%d (%s)\n", ip, port, ifa->ifa_name);
+    notify("Serving shell on %s:%d (%s)\n", ip, port, ifa->ifa_name);
   }
 
   freeifaddrs(ifaddr);
@@ -197,11 +225,6 @@ int
 main(void) {
   const int port = 2323;
   pid_t pid;
-
-  signal(SIGCHLD, SIG_IGN);
-  if((pid=syscall(SYS_rfork, RFPROC | RFNOWAIT | RFFDG))) {
-    return pid;
-  }
 
   signal(SIGCHLD, SIG_IGN);
   while((pid=find_pid("shsrv.elf")) > 0) {
