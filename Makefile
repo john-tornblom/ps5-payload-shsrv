@@ -38,7 +38,7 @@ all: $(ELF)
 %.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $^
 
-$(ELF): $(COMMANDS) main.o shell.o
+$(ELF): $(COMMANDS) main.o shell.o elfldr.o pt.o
 	$(LD) -o $@ $^ $(LDADD)
 
 clean:

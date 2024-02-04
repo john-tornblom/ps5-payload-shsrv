@@ -30,6 +30,8 @@ along with this program; see the file COPYING. If not, see
 
 #include "commands.h"
 #include "shell.h"
+#include "elfldr.h"
+
 
 #define SHELL_LINE_BUFSIZE 1024
 #define SHELL_TOK_BUFSIZE  128
@@ -317,12 +319,45 @@ shell_fork(main_t *main, int argc, char **argv) {
 }
 
 
+static int
+shell_which(const char* name, char* path) {
+  char **paths = NULL;
+  
+  if(name[0] == '/' && !access(name, R_OK | X_OK)) {
+    strcpy(path, name);
+    return 0;
+  }
+
+  if(!(paths=shell_splitstring(getenv("PATH"), ":"))) {
+    return 0;
+  }
+
+  for(int i=0; paths[i]; i++) {
+    sprintf(path, "%s/%s", paths[i], name);
+    if(!access(path, R_OK | X_OK)) {
+      free(paths);
+      return 0;
+    }
+  }
+
+  free(paths);
+
+  return -1;
+}
+
+
+
 /**
  * Execute a shell command.
  **/
 static int
 shell_execute(char **argv) {
+  char path[PATH_MAX];
   int argc = 0;
+  uint8_t* buf;
+  FILE* file;
+  long len;
+  int err;
 
   while(argv[argc]) {
     argc++;
@@ -343,9 +378,52 @@ shell_execute(char **argv) {
       return commands[i].main(argc, argv);
     }
   }
-  
-  printf("%s: command not found\n", argv[0]);
-  return -1;
+
+  if(shell_which(argv[0], path)) {
+    printf("%s: command not found\n", argv[0]);
+    return -1;
+  }
+
+  if(!(file=fopen(path, "rb"))) {
+    perror("fopen");
+    return -1;
+  }
+
+  if(fseek(file, 0, SEEK_END)) {
+    perror("fseek");
+    return -1;
+  }
+
+  if((len=ftell(file)) < 0) {
+    perror("ftell");
+    return -1;
+  }
+
+  if(fseek(file, 0, SEEK_SET)) {
+    perror("fseek");
+    return -1;
+  }
+
+  if(!(buf=malloc(len))) {
+    return -1;
+  }
+
+  if(fread(buf, 1, len, file) != len) {
+    perror("fread");
+    free(buf);
+    return -1;
+  }
+
+  if(fclose(file)) {
+    perror("fclose");
+    free(buf);
+    return -1;
+  }
+
+  err = elfldr_exec(buf, argv);
+  free(buf);
+
+  return err;
 }
 
 
@@ -365,6 +443,7 @@ shell_loop(void) {
   sceKernelSetProcessName("sh");
   setenv("HOME", "/", 0);
   setenv("PWD", "/", 0);
+  setenv("PATH", "/data/hbroot/bin", 0);
   shell_greet();
 
   while(running) {
