@@ -322,13 +322,16 @@ shell_fork(main_t *main, int argc, char **argv) {
 static int
 shell_which(const char* name, char* path) {
   char **paths = NULL;
-  
+  char* PATH;
+
   if(name[0] == '/' && !access(name, R_OK | X_OK)) {
     strcpy(path, name);
     return 0;
   }
 
-  if(!(paths=shell_splitstring(getenv("PATH"), ":"))) {
+  PATH = strdup(getenv("PATH"));
+  if(!(paths=shell_splitstring(PATH, ":"))) {
+    free(PATH);
     return 0;
   }
 
@@ -336,11 +339,13 @@ shell_which(const char* name, char* path) {
     sprintf(path, "%s/%s", paths[i], name);
     if(!access(path, R_OK | X_OK)) {
       free(paths);
+      free(PATH);
       return 0;
     }
   }
 
   free(paths);
+  free(PATH);
 
   return -1;
 }
@@ -443,7 +448,7 @@ shell_loop(void) {
   sceKernelSetProcessName("sh");
   setenv("HOME", "/", 0);
   setenv("PWD", "/", 0);
-  setenv("PATH", "/data/hbroot/bin", 0);
+  setenv("PATH", "/mnt/usb0/hbroot/bin:/data/hbroot/bin", 0);
   shell_greet();
 
   while(running) {
