@@ -510,6 +510,7 @@ elfldr_raise_privileges(pid_t pid) {
     puts("[elfldr.elf] kernel_set_proc_rootdir() failed");
     return -1;
   }
+
   if(kernel_set_ucred_uid(pid, 0)) {
     puts("[elfldr.elf] kernel_set_ucred_uid() failed");
     return -1;
