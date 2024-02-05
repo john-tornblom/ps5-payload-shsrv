@@ -24,7 +24,7 @@ along with this program; see the file COPYING. If not, see
 int pt_attach(pid_t pid);
 int pt_detach(pid_t pid);
 int pt_step(pid_t pid);
-int pt_continue(pid_t pid);
+int pt_continue(pid_t pid, int sig);
 
 int pt_getregs(pid_t pid, struct reg *r);
 int pt_setregs(pid_t pid, const struct reg *r);
@@ -33,6 +33,7 @@ int pt_getint(pid_t pid, intptr_t addr);
 
 long pt_syscall(pid_t pid, int sysno, ...);
 intptr_t pt_resolve(pid_t pid, const char* nid);
+int pt_backtrace(pid_t pid, char* addr2line, size_t size);
 
 int pt_jitshm_create(pid_t pid, intptr_t name, size_t size, int flags);
 int pt_jitshm_alias(pid_t pid, int fd, int flags);
@@ -54,5 +55,3 @@ int pt_close(pid_t pid, int fd);
 int pt_dup2(pid_t pid, int oldfd, int newfd);
 int pt_pipe(pid_t pid, intptr_t pipefd);
 void pt_perror(pid_t pid, const char *s);
-
-int pt_signal(pid_t pid, int signal);

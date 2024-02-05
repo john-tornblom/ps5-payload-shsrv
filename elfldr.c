@@ -615,7 +615,7 @@ elfldr_exec(uint8_t *elf, int stdio, char* argv[]) {
     return -1;
   }
 
-  if(pt_continue(pid)) {
+  if(pt_continue(pid, SIGCONT)) {
     perror("[elfldr.elf] pt_continue");
     pt_setregs(pid, &r);
     pt_detach(pid);

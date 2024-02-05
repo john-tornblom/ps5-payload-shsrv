@@ -26,10 +26,10 @@ ELF := shsrv.elf
 CC := $(PS5_PAYLOAD_SDK)/host/x86_64-ps5-payload-cc
 LD := $(PS5_PAYLOAD_SDK)/host/x86_64-ps5-payload-ld
 
-CFLAGS := -std=gnu11 -Wall
+CFLAGS := -Wall -Werror -g
 LDADD  := -lSceLibcInternal -lkernel_sys
 
-OBJS := main.o shell.o elfldr.o pt.o crashlog.o
+OBJS := main.o shell.o elfldr.o pt.o
 
 COMMANDS := $(wildcard commands/*.c)
 COMMANDS := $(COMMANDS:.c=.o)
