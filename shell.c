@@ -463,6 +463,7 @@ shell_loop(void) {
   int outfd = 1;
 
   sceKernelSetProcessName("sh");
+  chdir("/");
   setenv("HOME", "/", 0);
   setenv("PWD", "/", 0);
   setenv("PATH", "/mnt/usb0/hbroot/bin:/data/hbroot/bin", 0);
