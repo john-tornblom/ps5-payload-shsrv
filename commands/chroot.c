@@ -19,6 +19,8 @@ along with this program; see the file COPYING. If not, see
 #include <stdio.h>
 #include <unistd.h>
 
+#include <ps5/kernel.h>
+
 #include "_common.h"
 
 
@@ -31,14 +33,20 @@ main_chroot(int argc, char **argv) {
 
   char *path = abspath(argv[1]);
   int rc = EXIT_SUCCESS;
+  pid_t pid = getpid();
+  uint64_t authid = kernel_get_ucred_authid(pid);
   
-  if(chroot(path)) {
-    perror(argv[1]);
-    rc = EXIT_FAILURE;
-  }
+  kernel_set_ucred_authid(pid, 0x4800000000000007l);
+  rc = chroot(path);
+  kernel_set_ucred_authid(pid, authid);
 
   free(path);
   
-  return rc;
+  if(rc) {
+    perror(argv[1]);
+    return -1;
+  }
+
+  return 0;
 }
 
