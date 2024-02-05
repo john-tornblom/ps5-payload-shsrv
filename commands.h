@@ -16,6 +16,7 @@ along with this program; see the file COPYING. If not, see
 
 #pragma once
 
+int main_authid(int argc, char **argv);
 int main_cat(int argc, char **argv);
 int main_cd(int argc, char **argv);
 int main_chgrp(int argc, char **argv);

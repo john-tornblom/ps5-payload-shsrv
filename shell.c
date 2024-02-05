@@ -79,6 +79,7 @@ static int main_help(int argc, char **argv);
 
 
 shell_command_t commands[] = {
+  {"authid", main_authid, 0},
   {"cat", main_cat, 1},
   {"cd", main_cd, 0},
   {"chgrp", main_chgrp, 1},
