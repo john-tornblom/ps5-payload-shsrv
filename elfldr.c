@@ -514,6 +514,23 @@ elfldr_raise_privileges(pid_t pid) {
     puts("[elfldr.elf] kernel_set_ucred_uid() failed");
     return -1;
   }
+  if(kernel_set_ucred_ruid(pid, 0)) {
+    puts("[elfldr.elf] kernel_set_ucred_ruid() failed");
+    return -1;
+  }
+  if(kernel_set_ucred_svuid(pid, 0)) {
+    puts("[elfldr.elf] kernel_set_ucred_svuid() failed");
+    return -1;
+  }
+
+  if(kernel_set_ucred_rgid(pid, 0)) {
+    puts("[elfldr.elf] kernel_set_ucred_rgid() failed");
+    return -1;
+  }
+  if(kernel_set_ucred_svgid(pid, 0)) {
+    puts("[elfldr.elf] kernel_set_ucred_svgid() failed");
+    return -1;
+  }
 
   if(kernel_set_ucred_caps(pid, caps)) {
     puts("[elfldr.elf] kernel_set_ucred_caps() failed");
