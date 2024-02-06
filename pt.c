@@ -80,6 +80,12 @@ pt_resolve(pid_t pid, const char* nid) {
 
 
 int
+pt_trace_me(void) {
+  return sys_ptrace(PT_TRACE_ME, 0, 0, 0);
+}
+
+
+int
 pt_attach(pid_t pid) {
   if(sys_ptrace(PT_ATTACH, pid, 0, 0) == -1) {
     return -1;

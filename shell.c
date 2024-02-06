@@ -435,12 +435,20 @@ shell_execute(char **argv) {
     return pid;
   }
 
-  waitpid(pid, &status,  WTRAPPED | WUNTRACED);
+  waitpid(pid, &status, WSTOPPED);
   if(WIFEXITED(status)) {
     return WEXITSTATUS(status);
+
+  } else if(WIFSIGNALED(status)) {
+    printf("Received the fatal POSIX signal %d\n",  WTERMSIG(status));
+    pt_continue(pid, SIGKILL);
+    pt_detach(pid);
+
   } else if(WIFSTOPPED(status)) {
     printf("Received the fatal POSIX signal %d\n",  WSTOPSIG(status));
     pt_continue(pid, SIGKILL);
+    pt_detach(pid);
+
   } else {
     return -1;
   }

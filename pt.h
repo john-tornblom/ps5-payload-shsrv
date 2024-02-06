@@ -20,7 +20,7 @@ along with this program; see the file COPYING. If not, see
 #include <sys/types.h>
 #include <machine/reg.h>
 
-
+int pt_trace_me(void);
 int pt_attach(pid_t pid);
 int pt_detach(pid_t pid);
 int pt_step(pid_t pid);

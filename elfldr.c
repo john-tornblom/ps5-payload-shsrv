@@ -64,10 +64,6 @@ typedef struct elfldr_ctx {
 } elfldr_ctx_t;
 
 
-int sceKernelSpawn(pid_t* pid, int dbg, const char* binpath, const char* rootpath,
-		   char* const argv[]);
-
-
 /**
 * Parse a R_X86_64_RELATIVE relocatable.
 **/
@@ -604,58 +600,118 @@ elfldr_prepare_exec(pid_t pid, int stdio, uint8_t *elf) {
 }
 
 
+/**
+ *
+ **/
+static int
+elfldr_trace(const char* binpath, char* const argv[]) {
+  pid_t pid;
+
+  if((pid=syscall(SYS_fork))) {
+    return pid;
+  }
+
+  for(int i=0; i<getdtablesize(); i++) {
+    if(fcntl(i, F_GETFD) > 0) {
+      close(i);
+    }
+  }
+
+  if(open("/dev/deci_stdin", O_RDONLY) < 0) {
+    _exit(errno);
+  }
+  if(open("/dev/deci_stdout", O_WRONLY) < 0) {
+    _exit(errno);
+  }
+  if(open("/dev/deci_stderr", O_WRONLY) < 0) {
+    _exit(errno);
+  }
+
+  if(pt_trace_me() < 0) {
+    _exit(errno);
+  }
+  if(execve(binpath, argv, 0) < 0) {
+    _exit(errno);
+  }
+
+  _exit(-1);
+}
+
+
 int
 elfldr_exec(uint8_t *elf, int stdio, char* argv[]) {
   uint8_t int3instr = 0xcc;
-  struct reg r = {0};
+  struct kevent evt;
   intptr_t brkpoint;
   pid_t pid = -1;
+  int kq;
 
-  //SceSpZeroConf
-  if(sceKernelSpawn(&pid, 1, "/system/vsh/app/NPXS40112/eboot.bin", 0, argv)) {
-    perror("sceKernelSpawn");
-    pt_setregs(pid, &r);
+  if((kq=kqueue()) < 0) {
+    perror("kqueue");
+    return -1;
+  }
+
+  if((pid=elfldr_trace("/system/vsh/app/NPXS40112/eboot.bin", argv)) < 0) {
+    close(kq);
+    return -1;
+  }
+
+  EV_SET(&evt, pid, EVFILT_PROC, EV_ADD, NOTE_EXEC | NOTE_EXIT, 0, NULL);
+  if(kevent(kq, &evt, 1, &evt, 1, NULL) < 0) {
+    perror("kevent");
+    pt_continue(pid, SIGKILL);
+    pt_detach(pid);
+    close(kq);
+    return -1;
+  }
+
+  close(kq);
+  if(waitpid(pid, 0, 0) < 0) {
+    perror("waitpid");
+    pt_continue(pid, SIGKILL);
     pt_detach(pid);
     return -1;
   }
 
   if(!(brkpoint=kernel_dynlib_entry_addr(pid, 0))) {
     puts("[elfldr.elf] kernel_dynlib_entry_addr() failed");
-    pt_setregs(pid, &r);
+    pt_continue(pid, SIGKILL);
     pt_detach(pid);
     return -1;
   }
 
   if(mdbg_copyin(pid, &int3instr, brkpoint, sizeof(int3instr))) {
     perror("[elfldr.elf] mdbg_copyin");
-    pt_setregs(pid, &r);
+    pt_continue(pid, SIGKILL);
     pt_detach(pid);
     return -1;
   }
 
   if(pt_continue(pid, SIGCONT)) {
     perror("[elfldr.elf] pt_continue");
-    pt_setregs(pid, &r);
+    pt_continue(pid, SIGKILL);
     pt_detach(pid);
     return -1;
   }
 
   if(waitpid(pid, 0, 0) == -1) {
     perror("[elfldr.elf] waitpid");
-    pt_setregs(pid, &r);
+    pt_continue(pid, SIGKILL);
     pt_detach(pid);
     return -1;
   }
 
   if(elfldr_raise_privileges(pid)) {
     puts("[elfldr.elf] Unable to raise privileges");
-    pt_setregs(pid, &r);
+    pt_continue(pid, SIGKILL);
     pt_detach(pid);
     return -1;
   }
 
   if(elfldr_prepare_exec(pid, stdio, elf)) {
-    pt_setregs(pid, &r);
+    pt_continue(pid, SIGKILL);
+    pt_detach(pid);
+    return -1;
   }
 
   elfldr_set_procname(pid, argv[0]);
