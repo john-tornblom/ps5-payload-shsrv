@@ -298,7 +298,9 @@ shell_prompt(void) {
 static int
 shell_fork(main_t *main, int argc, char **argv) {
   pid_t pid = syscall(SYS_fork);
-  if (pid == 0) {
+  int status = 0;
+
+  if(pid == 0) {
     sceKernelSetProcessName(argv[0]);
     int rc = main(argc, argv);
     _exit(rc);
@@ -308,10 +310,9 @@ shell_fork(main_t *main, int argc, char **argv) {
     perror("fork");
     return -1;
   } else {
-    int status = 0;
     do {
       waitpid(pid, &status, WUNTRACED);
-    } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+    } while(!WIFEXITED(status) && !WIFSIGNALED(status));
 
     if(WIFEXITED(status)) {
       return WEXITSTATUS(status);
