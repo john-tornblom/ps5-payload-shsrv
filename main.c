@@ -33,39 +33,6 @@ along with this program; see the file COPYING. If not, see
 
 
 /**
- * Data structure used to send UI notifications on the PS5.
- **/
-typedef struct notify_request {
-  char useless[45];
-  char message[3075];
-} notify_request_t;
-
-
-/**
- * Send a UI notification request.
- **/
-int sceKernelSendNotificationRequest(int, notify_request_t*, size_t, int);
-
-
-/**
- * Send a notification to the UI and stdout.
- **/
-static void
-notify(const char *fmt, ...) {
-  notify_request_t req;
-  va_list args;
-
-  bzero(&req, sizeof req);
-  va_start(args, fmt);
-  vsnprintf(req.message, sizeof req.message, fmt, args);
-  va_end(args);
-
-  sceKernelSendNotificationRequest(0, &req, sizeof req, 0);
-  printf("[shsrv.elf] %s\n", req.message);
-}
-
-
-/**
  * 
  **/
 static void
@@ -133,7 +100,7 @@ serve_shell(uint16_t port) {
       continue;
     }
     ifaddr_wait = 0;
-    notify("Serving shell on %s:%d (%s)", ip, port, ifa->ifa_name);
+    printf("[shsrv.elf] Serving shell on %s:%d (%s)", ip, port, ifa->ifa_name);
   }
 
   freeifaddrs(ifaddr);
@@ -259,6 +226,8 @@ main(void) {
   signal(SIGCHLD, SIG_IGN);
   init_stdio();
 
+  printf("[shsrv.elf] Launching shell server compiled %s at %s\n",
+	 __DATE__, __TIME__);
   while(1) {
     serve_shell(port);
     sleep(3);
