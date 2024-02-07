@@ -29,8 +29,6 @@ along with this program; see the file COPYING. If not, see
 #include <sys/sysctl.h>
 #include <unistd.h>
 
-#include <ps5/kernel.h>
-
 #include "shell.h"
 
 
@@ -77,11 +75,15 @@ spawn_shell(int srvfd, int fd) {
   }
 
   syscall(SYS_thr_set_name, -1, "sh");
+
+  close(srvfd);
+  close(STDERR_FILENO);
+  close(STDOUT_FILENO);
+  close(STDIN_FILENO);
+
   dup2(fd, STDIN_FILENO);
   dup2(fd, STDOUT_FILENO);
   dup2(fd, STDERR_FILENO);
-
-  close(srvfd);
   close(fd);
 
   shell_loop();
@@ -221,12 +223,30 @@ find_pid(const char* name) {
 }
 
 
+static void
+init_stdio(void) {
+  int fd = open("/dev/console", O_WRONLY);
+
+  close(STDERR_FILENO);
+  close(STDOUT_FILENO);
+
+  dup2(fd, STDOUT_FILENO);
+  dup2(fd, STDERR_FILENO);
+
+  close(fd);
+}
+
+
 int
 main(void) {
   const int port = 2323;
   pid_t pid;
 
   signal(SIGCHLD, SIG_IGN);
+  if(syscall(SYS_rfork, RFPROC | RFNOWAIT | RFFDG)) {
+    return 0;
+  }
+
   while((pid=find_pid("shsrv.elf")) > 0) {
     if(kill(pid, SIGTERM)) {
       perror("[shsrv.elf] kill");
@@ -236,8 +256,8 @@ main(void) {
 
   syscall(SYS_thr_set_name, -1, "shsrv.elf");
   syscall(SYS_setsid);
-  dup2(open("/dev/console", O_WRONLY), STDOUT_FILENO);
-  dup2(open("/dev/console", O_WRONLY), STDERR_FILENO);
+  signal(SIGCHLD, SIG_IGN);
+  init_stdio();
 
   while(1) {
     serve_shell(port);
