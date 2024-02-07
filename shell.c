@@ -465,12 +465,11 @@ shell_loop(void) {
   char *line = NULL;
   char **cmds = NULL;
   char **args = NULL;
-  int pipefd[2] = {0, 0};
+  int pipefd[2] = {-1, -1};
   int running = 1;
   int infd = 0;
   int outfd = 1;
 
-  sceKernelSetProcessName("sh");
   chdir("/");
   setenv("HOME", "/", 0);
   setenv("PWD", "/", 0);
