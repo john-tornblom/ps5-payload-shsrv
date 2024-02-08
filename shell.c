@@ -429,14 +429,14 @@ shell_execute(char **argv) {
     return -1;
   }
 
-  pid = elfldr_exec(buf, dup(STDOUT_FILENO), argv);
+  pid = elfldr_exec(buf, argv);
   free(buf);
 
   if(pid < 0) {
     return pid;
   }
 
-  waitpid(pid, &status, WSTOPPED);
+  waitpid(pid, &status, WEXITED | WTRAPPED | WSTOPPED);
   if(WIFEXITED(status)) {
     return WEXITSTATUS(status);
 

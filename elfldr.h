@@ -18,4 +18,4 @@ along with this program; see the file COPYING. If not, see
 
 #include <unistd.h>
 
-pid_t elfldr_exec(uint8_t *elf, int stdio, char* argv[]);
+pid_t elfldr_exec(uint8_t *elf, char* argv[]);
