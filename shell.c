@@ -233,7 +233,7 @@ shell_greet(void) {
   int temp = 0;
 
   printf("\n");
-  printf("Welcome to shsrv.elf running on pid %d, ", getpid());
+  printf("Welcome to shsrv.elf running on pid %d, ", getppid());
   printf("compiled %s at %s\n\n", __DATE__, __TIME__);
 
   s[0] = '\0';
