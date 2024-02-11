@@ -39,6 +39,17 @@ get a list of running processes:
 ...
 ```
 
+You can also run your own paylaods by placing them in a folder included in the
+PATH enviroment variable, which is initialized to /data/hbroot/bin and
+/mnt/usb0/hbroot/bin
+
+```console
+john@localhost:tmp$ wget https://github.com/john-tornblom/ps5-payload-sdk/releases/download/releases%2Fv0.6/Payload.binaries.zip
+john@localhost:tmp$ unzip Payload.binaries.zip samples/hello_sprx/hello_sprx.elf
+john@localhost:tmp$ curl -T samples/hello_sprx/hello_sprx.elf ftp://ps5:2121/data/hbroot/bin/
+john@localhost:tmp$ echo "hello_sprx.elf" | nc -q0 $PS5_HOST 2323
+```
+
 ## Limitations
 The login session is not attached to a TTY, so you cannot signal for, e.g., SIGINT
 with Ctrl+C. Furthermore, most of the commands are only partially implemneted.
