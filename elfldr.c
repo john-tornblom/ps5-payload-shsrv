@@ -17,12 +17,14 @@ along with this program; see the file COPYING. If not, see
 #include <elf.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include <sys/mman.h>
+#include <sys/ptrace.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/sysctl.h>
@@ -63,6 +65,12 @@ typedef struct elfldr_ctx {
   intptr_t base_addr;
   size_t   base_size;
 } elfldr_ctx_t;
+
+
+/**
+ * Absolute path to the SceSpZeroConf eboot.
+ **/
+static const char* SceSpZeroConf = "/system/vsh/app/NPXS40112/eboot.bin";
 
 
 /**
@@ -400,34 +408,8 @@ elfldr_set_procname(pid_t pid, const char* name) {
 }
 
 
-/**
- *
- **/
-static int
-elfldr_spawn(const char* binpath, char* const argv[]) {
-  pid_t pid;
-
-  if((pid=syscall(SYS_fork))) {
-    return pid;
-  }
-
-  syscall(SYS_thr_set_name, -1, argv[0]);
-  if(pt_trace_me() < 0) {
-    perror("pt_trace_me");
-    _exit(errno);
-  }
-
-  if(execve(binpath, argv, 0) < 0) {
-    perror("execve");
-    _exit(errno);
-  }
-
-  return -1;
-}
-
-
 int
-elfldr_exec(uint8_t *elf, char* argv[]) {
+elfldr_spawn(uint8_t *elf, char* argv[]) {
   uint8_t int3instr = 0xcc;
   struct kevent evt;
   intptr_t brkpoint;
@@ -439,15 +421,31 @@ elfldr_exec(uint8_t *elf, char* argv[]) {
     return -1;
   }
 
-  if((pid=elfldr_spawn("/system/vsh/app/NPXS40112/eboot.bin", argv)) < 0) {
+  if((pid=syscall(SYS_fork)) < 0) {
+    perror("fork");
     close(kq);
-    return -1;
+    return pid;
+  }
+
+  if(!pid) {
+    syscall(SYS_thr_set_name, -1, argv[0]);
+
+    if(syscall(SYS_ptrace, PT_TRACE_ME, 0, 0, 0) < 0) {
+      perror("ptrace");
+      _exit(errno);
+    }
+
+    if(execve(SceSpZeroConf, argv, 0) < 0) {
+      perror("execve");
+      _exit(errno);
+    }
+    _exit(-1);
   }
 
   EV_SET(&evt, pid, EVFILT_PROC, EV_ADD, NOTE_EXEC | NOTE_EXIT, 0, NULL);
   if(kevent(kq, &evt, 1, &evt, 1, NULL) < 0) {
     perror("kevent");
-    pt_continue(pid, SIGKILL);
+    kill(pid, SIGKILL);
     pt_detach(pid);
     close(kq);
     return -1;
@@ -456,48 +454,48 @@ elfldr_exec(uint8_t *elf, char* argv[]) {
   close(kq);
   if(waitpid(pid, 0, 0) < 0) {
     perror("waitpid");
-    pt_continue(pid, SIGKILL);
+    kill(pid, SIGKILL);
     pt_detach(pid);
     return -1;
   }
 
   if(!(brkpoint=kernel_dynlib_entry_addr(pid, 0))) {
     puts("[elfldr.elf] kernel_dynlib_entry_addr() failed");
-    pt_continue(pid, SIGKILL);
+    kill(pid, SIGKILL);
     pt_detach(pid);
     return -1;
   }
 
   if(mdbg_copyin(pid, &int3instr, brkpoint, sizeof(int3instr))) {
     perror("[elfldr.elf] mdbg_copyin");
-    pt_continue(pid, SIGKILL);
+    kill(pid, SIGKILL);
     pt_detach(pid);
     return -1;
   }
 
   if(pt_continue(pid, SIGCONT)) {
     perror("[elfldr.elf] pt_continue");
-    pt_continue(pid, SIGKILL);
+    kill(pid, SIGKILL);
     pt_detach(pid);
     return -1;
   }
 
   if(waitpid(pid, 0, 0) == -1) {
     perror("[elfldr.elf] waitpid");
-    pt_continue(pid, SIGKILL);
+    kill(pid, SIGKILL);
     pt_detach(pid);
     return -1;
   }
 
   if(elfldr_raise_privileges(pid)) {
     puts("[elfldr.elf] Unable to raise privileges");
-    pt_continue(pid, SIGKILL);
+    kill(pid, SIGKILL);
     pt_detach(pid);
     return -1;
   }
 
   if(elfldr_prepare_exec(pid, elf)) {
-    pt_continue(pid, SIGKILL);
+    kill(pid, SIGKILL);
     pt_detach(pid);
     return -1;
   }
@@ -505,6 +503,7 @@ elfldr_exec(uint8_t *elf, char* argv[]) {
   elfldr_set_procname(pid, argv[0]);
   if(pt_detach(pid)) {
     perror("[elfldr.elf] pt_detach");
+    kill(pid, SIGKILL);
     return -1;
   }
 

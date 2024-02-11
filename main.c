@@ -209,10 +209,8 @@ main(void) {
   const int port = 2323;
   pid_t pid;
 
-  signal(SIGCHLD, SIG_IGN);
-  if(syscall(SYS_rfork, RFPROC | RFNOWAIT | RFFDG)) {
-    return 0;
-  }
+  init_stdio();
+  printf("[shsrv.elf] Shell server was compiled at %s %s\n", __DATE__, __TIME__);
 
   while((pid=find_pid("shsrv.elf")) > 0) {
     if(kill(pid, SIGTERM)) {
@@ -224,10 +222,6 @@ main(void) {
   syscall(SYS_thr_set_name, -1, "shsrv.elf");
   syscall(SYS_setsid);
   signal(SIGCHLD, SIG_IGN);
-  init_stdio();
-
-  printf("[shsrv.elf] Launching shell server compiled %s at %s\n",
-	 __DATE__, __TIME__);
   while(1) {
     serve_shell(port);
     sleep(3);

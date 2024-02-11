@@ -293,12 +293,36 @@ shell_prompt(void) {
 
 
 /**
+ * Wait for a child process to terminate.
+ **/
+static int
+shell_waitpid(pid_t pid) {
+  int status;
+  pid_t res;
+
+  while(1) {
+    if((res=waitpid(pid, &status, WNOHANG)) < 0) {
+      return -1;
+
+    } else if(!res) {
+      usleep(1000);
+      continue;
+
+    } else if(WIFEXITED(status)) {
+      return WEXITSTATUS(status);
+    } else {
+      return -1;
+    }
+  }
+}
+
+
+/**
  * Fork the execution of a command.
  **/
 static int
 shell_fork(main_t *main, int argc, char **argv) {
   pid_t pid = syscall(SYS_fork);
-  int status = 0;
 
   if(pid == 0) {
     sceKernelSetProcessName(argv[0]);
@@ -309,16 +333,9 @@ shell_fork(main_t *main, int argc, char **argv) {
   } else if (pid < 0) {
     perror("fork");
     return -1;
-  } else {
-    do {
-      waitpid(pid, &status, WUNTRACED);
-    } while(!WIFEXITED(status) && !WIFSIGNALED(status));
 
-    if(WIFEXITED(status)) {
-      return WEXITSTATUS(status);
-    } else {
-      return EXIT_FAILURE;
-    }
+  } else {
+    return shell_waitpid(pid);
   }
 }
 
@@ -362,7 +379,6 @@ static int
 shell_execute(char **argv) {
   char path[PATH_MAX];
   pid_t pid = -1;
-  int status = 0;
   int argc = 0;
   uint8_t* buf;
   FILE* file;
@@ -429,32 +445,14 @@ shell_execute(char **argv) {
     return -1;
   }
 
-  pid = elfldr_exec(buf, argv);
+  pid = elfldr_spawn(buf, argv);
   free(buf);
 
   if(pid < 0) {
     return pid;
   }
 
-  waitpid(pid, &status, WEXITED | WTRAPPED | WSTOPPED);
-  if(WIFEXITED(status)) {
-    return WEXITSTATUS(status);
-
-  } else if(WIFSIGNALED(status)) {
-    printf("Received the fatal POSIX signal %d\n",  WTERMSIG(status));
-    pt_continue(pid, SIGKILL);
-    pt_detach(pid);
-
-  } else if(WIFSTOPPED(status)) {
-    printf("Received the fatal POSIX signal %d\n",  WSTOPSIG(status));
-    pt_continue(pid, SIGKILL);
-    pt_detach(pid);
-
-  } else {
-    return -1;
-  }
-
-  return 0;
+  return shell_waitpid(pid);
 }
 
 
