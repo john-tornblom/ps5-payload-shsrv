@@ -30,8 +30,7 @@ along with this program; see the file COPYING. If not, see
 typedef struct app_info {
   uint32_t app_id;
   uint64_t unknown1;
-  uint32_t app_type;
-  char     title_id[10];
+  char     title_id[14];
   char     unknown2[0x3c];
 } app_info_t;
 
@@ -70,8 +69,8 @@ main_ps(int argc, char** argv) {
     return -1;
   }
 
-  printf("     PID      PPID     PGID      SID      UID           AuthId     "
-	 "     Emul  State  AppId  TitleId  Command\n");
+  printf("     PID      PPID     PGID      SID      UID           AuthId"
+	 "    State     AppId    TitleId  Command\n");
   for(void *ptr=buf; ptr<(buf+buf_size);) {
     struct kinfo_proc *ki = (struct kinfo_proc*)ptr;
     ptr += ki->ki_structsize;
@@ -80,10 +79,10 @@ main_ps(int argc, char** argv) {
       memset(&appinfo, 0, sizeof(appinfo));
     }
 
-    printf("%8u  %8u %8u %8u %8u %016lx   %11s   %5s  %04x    %5s  %s\n",
+    printf("%8u  %8u %8u %8u %8u %016lx    %5s  %08x  %9s  %s\n",
 	   ki->ki_pid, ki->ki_ppid, ki->ki_pgid, ki->ki_sid,
 	   ki->ki_uid, kernel_get_ucred_authid(ki->ki_pid),
-	   ki->ki_emul, state_abbrev[(int)ki->ki_stat], appinfo.app_id,
+	   state_abbrev[(int)ki->ki_stat], appinfo.app_id,
 	   appinfo.title_id, ki->ki_comm);
   }
 

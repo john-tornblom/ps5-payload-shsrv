@@ -139,7 +139,7 @@ hexdump(void *data, size_t size) {
 
   for(int i=0; i<size; i+=16) {
     uint8_t *buf = (uint8_t*)data+i;
-    int n = i + 16 < size ? 16 : size % 16;
+    int n = i + 16 <= size ? 16 : size % 16;
     
     printf("%08x  ", i);
     
