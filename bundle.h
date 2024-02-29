@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 John Törnblom
+/* Copyright (C) 2024 John Törnblom
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -14,40 +14,10 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/sysctl.h>
-
-#include "_common.h"
+#pragma once
 
 
-int
-main_sysctl(int argc, char **argv) {
-  size_t size;
-  char *buf;
-  
-  if(argc <= 1) {
-    fprintf(stderr, "%s: missing operand\n", argv[0]);
-    return -1;
-  }
-
-  if((sysctlbyname(argv[1], 0, &size, 0, 0))) {
-    perror(argv[0]);
-  } else {
-    buf = malloc(size);
-    memset(buf, 0, size);
-  
-    if((sysctlbyname(argv[1], buf, &size, 0, 0)) < 0) {
-      perror(argv[0]);
-    }
-
-    hexdump(buf, size);
-    free(buf);
-  }
-
-  
-  return 0;
-}
-
+/**
+ * Find a bundled elf by its name.
+ **/
+unsigned char* bundle_find_elf(const char* name);

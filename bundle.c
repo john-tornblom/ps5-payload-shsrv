@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 John Törnblom
+/* Copyright (C) 2024 John Törnblom
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -14,34 +14,35 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
-// Code derived from https://github.com/TheOfficialFloW/VitaShell
+#include <string.h>
 
-#pragma once
+#include "commands/env_elf.c"
+#include "commands/ls_elf.c"
+#include "commands/ps_elf.c"
 
-#include <stdint.h>
-
-typedef struct sfo_header {
-  uint32_t magic;
-  uint32_t version;
-  uint32_t keys_offset;
-  uint32_t data_offset;
-  uint32_t count;
-} __attribute__((packed)) sfo_header_t;
-
-
-typedef struct sfo_entry {
-  uint16_t key_offset;
-  uint8_t  alignment;
-  uint8_t  type;
-  uint32_t val_length;
-  uint32_t val_size;
-  uint32_t val_offset;
-} __attribute__((packed)) sfo_entry_t;
+/**
+ * Map names of bundled commands.
+ **/
+typedef struct bundle_map {
+  const char    *name;
+  unsigned char *elf;
+} bundle_map_t;
 
 
-#define TYPE_BIN 0
-#define TYPE_STR 2
-#define TYPE_INT 4
+static bundle_map_t map[] = {
+  {"env", env_elf},
+  {"ls", ls_elf},
+  {"ps", ps_elf},
+};
 
-#define MAGIC 0x46535000
 
+unsigned char*
+bundle_find_elf(const char* name) {
+  for(int i=0; i<sizeof(map)/sizeof(map[0]); i++) {
+    if(!strcmp(name, map[i].name)) {
+      return map[i].elf;
+    }
+  }
+
+  return 0;
+}

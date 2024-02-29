@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 John Törnblom
+/* Copyright (C) 2024 John Törnblom
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -14,25 +14,17 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
+#pragma once
+
 
 /**
- * 
+ * Prototype for builtin commands.
  **/
-int
-main_sleep(int argc, char **argv) {
+typedef int (builtin_cmd_t)(int argc, char **argv);
 
-  if(argc <= 1) {
-    fprintf(stderr, "%s: missing operand\n", argv[0]);
-    return -1;
-  }
 
-  unsigned int seconds = atoi(argv[1]);
-  sleep(seconds);
-    
-  return 0;
-}
-
+/**
+ * Find a builtin command by its name.
+ **/
+builtin_cmd_t* builtin_find_cmd(const char* name);
 

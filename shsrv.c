@@ -14,7 +14,6 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
-
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <ifaddrs.h>
@@ -29,43 +28,22 @@ along with this program; see the file COPYING. If not, see
 #include <sys/sysctl.h>
 #include <unistd.h>
 
-#include "shell.h"
+#include <ps5/kernel.h>
+#include <ps5/klog.h>
 
-
-/**
- * 
- **/
-static void
-spawn_shell(int srvfd, int fd) {
-  if(syscall(SYS_fork)) {
-    return;
-  }
-
-  syscall(SYS_thr_set_name, -1, "sh");
-
-  close(srvfd);
-  close(STDERR_FILENO);
-  close(STDOUT_FILENO);
-  close(STDIN_FILENO);
-
-  dup2(fd, STDIN_FILENO);
-  dup2(fd, STDOUT_FILENO);
-  dup2(fd, STDERR_FILENO);
-  close(fd);
-
-  shell_loop();
-  _exit(0);
-}
+#include "elfldr.h"
+#include "sh_elf.c"
 
 
 /**
  *
  **/
 static int
-serve_shell(uint16_t port) {
+serve_sh(uint16_t port) {
   struct sockaddr_in server_addr;
   struct sockaddr_in client_addr;
   char ip[INET_ADDRSTRLEN];
+  char* argv[] = {"sh", 0};
   struct ifaddrs *ifaddr;
   int ifaddr_wait = 1;
   socklen_t addr_len;
@@ -73,8 +51,8 @@ serve_shell(uint16_t port) {
   int srvfd;
 
   if(getifaddrs(&ifaddr) == -1) {
-    perror("[shsrv.elf] getifaddrs");
-    _exit(EXIT_FAILURE);
+    klog_perror("getifaddrs");
+    exit(EXIT_FAILURE);
   }
 
   // Enumerate all AF_INET IPs
@@ -100,7 +78,7 @@ serve_shell(uint16_t port) {
       continue;
     }
     ifaddr_wait = 0;
-    printf("[shsrv.elf] Serving shell on %s:%d (%s)\n", ip, port, ifa->ifa_name);
+    klog_printf("Serving shell on %s:%d (%s)\n", ip, port, ifa->ifa_name);
   }
 
   freeifaddrs(ifaddr);
@@ -110,12 +88,12 @@ serve_shell(uint16_t port) {
   }
 
   if((srvfd=socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-    perror("[shsrv.elf] socket");
+    klog_perror("socket");
     return -1;
   }
 
   if(setsockopt(srvfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
-    perror("[shsrv.elf] setsockopt");
+    klog_perror("setsockopt");
     return -1;
   }
 
@@ -125,22 +103,22 @@ serve_shell(uint16_t port) {
   server_addr.sin_port = htons(port);
 
   if(bind(srvfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) != 0) {
-    perror("[shsrv.elf] bind");
+    klog_perror("bind");
     return -1;
   }
 
   if(listen(srvfd, 5) != 0) {
-    perror("[shsrv.elf] listen");
+    klog_perror("listen");
     return -1;
   }
 
   while(1) {
     addr_len = sizeof(client_addr);
     if((connfd=accept(srvfd, (struct sockaddr*)&client_addr, &addr_len)) < 0) {
-      perror("[shsrv.elf] accept");
+      klog_perror("accept");
       break;
     }
-    spawn_shell(srvfd, connfd);
+    elfldr_spawn(connfd, sh_elf, argv);
     close(connfd);
   }
 
@@ -154,22 +132,23 @@ serve_shell(uint16_t port) {
 static pid_t
 find_pid(const char* name) {
   int mib[4] = {1, 14, 8, 0};
+  pid_t mypid = getpid();
   pid_t pid = -1;
   size_t buf_size;
   uint8_t *buf;
 
   if(sysctl(mib, 4, 0, &buf_size, 0, 0)) {
-    perror("[shsrv.elf] sysctl");
+    klog_perror("sysctl");
     return -1;
   }
 
   if(!(buf=malloc(buf_size))) {
-    perror("[shsrv.elf] malloc");
+    klog_perror("malloc");
     return -1;
   }
 
   if(sysctl(mib, 4, buf, &buf_size, 0, 0)) {
-    perror("[shsrv.elf] sysctl");
+    klog_perror("sysctl");
     return -1;
   }
 
@@ -179,7 +158,7 @@ find_pid(const char* name) {
     char *ki_tdname = (char*)&ptr[447];
 
     ptr += ki_structsize;
-    if(!strcmp(name, ki_tdname)) {
+    if(!strcmp(name, ki_tdname) && mypid != ki_pid) {
       pid = ki_pid;
     }
   }
@@ -190,13 +169,18 @@ find_pid(const char* name) {
 }
 
 
+/**
+ *
+ **/
 static void
 init_stdio(void) {
-  int fd = open("/dev/console", O_WRONLY);
+  int fd = open("/dev/console", O_RDWR);
 
   close(STDERR_FILENO);
   close(STDOUT_FILENO);
+  close(STDIN_FILENO);
 
+  dup2(fd, STDIN_FILENO);
   dup2(fd, STDOUT_FILENO);
   dup2(fd, STDERR_FILENO);
 
@@ -206,24 +190,24 @@ init_stdio(void) {
 
 int
 main(void) {
-  const int port = 2323;
+  int port = 2323;
   pid_t pid;
 
+  syscall(SYS_thr_set_name, -1, "shsrv.elf");
   init_stdio();
-  printf("[shsrv.elf] Shell server was compiled at %s %s\n", __DATE__, __TIME__);
+
+  klog_printf("Shell server was compiled at %s %s\n", __DATE__, __TIME__);
 
   while((pid=find_pid("shsrv.elf")) > 0) {
-    if(kill(pid, SIGTERM)) {
-      perror("[shsrv.elf] kill");
+    if(kill(pid, SIGKILL)) {
+      klog_perror("kill");
     }
     sleep(1);
   }
 
-  syscall(SYS_thr_set_name, -1, "shsrv.elf");
-  syscall(SYS_setsid);
   signal(SIGCHLD, SIG_IGN);
   while(1) {
-    serve_shell(port);
+    serve_sh(port);
     sleep(3);
   }
 

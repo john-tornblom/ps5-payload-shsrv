@@ -269,6 +269,12 @@ pt_mmap(pid_t pid, intptr_t addr, size_t len, int prot, int flags,
 
 
 int
+pt_msync(pid_t pid, intptr_t addr, size_t len, int flags) {
+  return pt_syscall(pid, SYS_msync, addr, len, flags);
+}
+
+
+int
 pt_munmap(pid_t pid, intptr_t addr, size_t len) {
   return pt_syscall(pid, SYS_munmap, addr, len);
 }
@@ -314,6 +320,12 @@ pt_close(pid_t pid, int fd) {
 int
 pt_dup2(pid_t pid, int oldfd, int newfd) {
   return (int)pt_syscall(pid, SYS_dup2, oldfd, newfd);
+}
+
+
+int
+pt_rdup(pid_t pid, pid_t other_pid, int fd) {
+  return (int)pt_syscall(pid, 0x25b, other_pid, fd);
 }
 
 

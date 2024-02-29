@@ -17,25 +17,14 @@ along with this program; see the file COPYING. If not, see
 #include <stdio.h>
 
 
-extern char **environ;
-
-
 /**
  *
  **/
 int
-main_env(int argc, char **argv) {
-  char **var;
+main(int argc, char **argv, char** envp) {
+  for(char** var=envp; *var; var++) {
+    puts(*var);
+  }
 
-  if(!environ) {
-    return 0;
-  }
-  
-  for(var=environ; *var; var++) {
-    fprintf(stdout, "%s\n", *var);
-  }
-  
   return 0;
 }
-
-

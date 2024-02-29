@@ -14,39 +14,29 @@
 # along with this program; see the file COPYING. If not see
 # <http://www.gnu.org/licenses/>.
 
-PS5_HOST ?= ps5
-PS5_PORT ?= 9021
-
 ifdef PS5_PAYLOAD_SDK
     include $(PS5_PAYLOAD_SDK)/make/x86_64-ps5-payload.inc
 else
     $(error PS5_PAYLOAD_SDK is undefined)
 endif
 
-CFLAGS := -Wall
-LDADD  := -lSceLibcInternal -lkernel_sys
+CFLAGS += -Wall
+LDADD  += -lkernel_sys
 
+SRCS = env_elf.c ls_elf.c ps_elf.c
 
-all: shsrv.elf sh.elf
-
-shsrv.o: sh_elf.c
-
-bundle.o: commands/env_elf.c commands/ls_elf.c commands/ps_elf.c
+all: $(SRCS)
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $<
 
-shsrv.elf: shsrv.o elfldr.o pt.o
+%.elf: %.o
 	$(LD) -o $@ $^ $(LDADD)
 
-sh.elf: sh.o builtin.o bundle.o elfldr.o pt.o
-	$(LD) -o $@ $^ $(LDADD)
-
-sh_elf.c: sh.elf
+%_elf.c: %.elf
 	xxd -i $^ > $@
 
 clean:
-	rm -f *.o *.elf
+	rm -f *.o *.elf *_elf.c
 
-test: shsrv.elf
-	nc -q0 $(PS5_HOST) $(PS5_PORT) < $^
+
