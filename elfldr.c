@@ -73,8 +73,17 @@ typedef struct elfldr_ctx {
 static const char* SceSpZeroConf = "/system/vsh/app/NPXS40112/eboot.bin";
 
 
+/**
+ *
+ **/
 int sceKernelSpawn(int *pid, int dbg, const char *path, char *root,
 		   char* argv[]);
+
+
+/**
+ *
+ **/
+extern char** environ;
 
 
 /**
@@ -468,10 +477,10 @@ elfldr_prepare_exec(pid_t pid, uint8_t *elf) {
   }
 
   r.r_rip = entry;
-  r.r_rsi = pt_getint(pid, r.r_rdi); // param 1
-  r.r_rdx = r.r_rdi + 0x8;           // param 2
-  r.r_rcx = elfldr_envp(pid);        // param 3
-  r.r_rdi = args;                    // param 0
+  r.r_rcx = elfldr_envp(pid);
+  r.r_rdx = r.r_rsi; // argv
+  r.r_rsi = r.r_rdi; // argc
+  r.r_rdi = args;
 
   if(pt_setregs(pid, &r)) {
     perror("pt_setregs");

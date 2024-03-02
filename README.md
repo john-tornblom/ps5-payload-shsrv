@@ -44,7 +44,7 @@ PATH enviroment variable, which is initialized to /data/hbroot/bin and
 /mnt/usb0/hbroot/bin
 
 ```console
-john@localhost:tmp$ wget https://github.com/john-tornblom/ps5-payload-sdk/releases/download/releases%2Fv0.6/Payload.binaries.zip
+john@localhost:tmp$ wget https://github.com/john-tornblom/ps5-payload-sdk/releases/download/releases%2Fv0.9/Payload.binaries.zip
 john@localhost:tmp$ unzip Payload.binaries.zip samples/hello_sprx/hello_sprx.elf
 john@localhost:tmp$ curl -T samples/hello_sprx/hello_sprx.elf ftp://ps5:2121/data/hbroot/bin/
 john@localhost:tmp$ echo "hello_sprx.elf" | nc -q0 $PS5_HOST 2323

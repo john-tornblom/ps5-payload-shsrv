@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 John Törnblom
+/* Copyright (C) 2021 John Törnblom
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -14,24 +14,37 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
-#pragma once
+// Code inspired by http://members.tip.net.au/%7Edbell/programs/sash-3.8.tar.gz
 
-#include <stdint.h>
+#include <stdio.h>
+#include <unistd.h>
 
-
-/**
- * Prototype for builtin commands.
- **/
-typedef int (builtin_cmd_t)(int argc, char **argv);
+#include "_common.h"
 
 
 /**
- * Find a builtin command by its name.
+ *
  **/
-builtin_cmd_t* builtin_find_cmd(const char* name);
+static int
+rm_main(int argc, char** argv) {
+  int r = 0;
+
+  while (argc-- > 1) {
+    if (unlink(argv[1]) < 0) {
+      perror(argv[1]);
+      r = 1;
+    }
+    argv++;
+  }
+
+  return r;
+}
 
 
 /**
- * Find a builtin ELF by its name.
+ *
  **/
-uint8_t* builtin_find_elf(const char* name);
+__attribute__((constructor)) static void
+pwd_constructor(void) {
+  command_define("rm", rm_main);
+}

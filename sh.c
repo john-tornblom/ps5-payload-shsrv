@@ -25,7 +25,6 @@ along with this program; see the file COPYING. If not, see
 #include <sys/wait.h>
 
 #include "builtin.h"
-#include "bundle.h"
 #include "elfldr.h"
 
 
@@ -33,6 +32,24 @@ along with this program; see the file COPYING. If not, see
 #define SHELL_TOK_BUFSIZE  128
 #define SHELL_ARG_DELIM    " \t\r\n\a"
 #define SHELL_CMD_DELIM    "|;&"
+
+
+typedef struct sce_version {
+  unsigned long unknown1;
+  char          str_version[0x1c];
+  unsigned int  bin_version;
+  unsigned long unknown2;
+} sce_version_t;
+
+
+int  sceKernelSetProcessName(const char*);
+int  sceKernelGetSystemSwVersion(sce_version_t *);
+int  sceKernelGetProsperoSystemSwVersion(sce_version_t *);
+int  sceKernelGetHwModelName(char *);
+int  sceKernelGetHwSerialNumber(char *);
+long sceKernelGetCpuFrequency(void);
+int  sceKernelGetCpuTemperature(int *);
+int  sceKernelGetSocSensorTemperature(int, int *);
 
 
 /**
@@ -148,12 +165,96 @@ sh_waitpid(pid_t pid) {
   }
 }
 
+/**
+ * Search the env varriable PATH for a file with the given name.
+ **/
+static int
+sh_which(const char* name, char* path) {
+  char **paths = NULL;
+  char* PATH;
+
+  if(name[0] == '/' && !access(name, R_OK | X_OK)) {
+    strcpy(path, name);
+    return 0;
+  }
+
+  PATH = strdup(getenv("PATH"));
+  if(!(paths=sh_splitstring(PATH, ":"))) {
+    free(PATH);
+    return 0;
+  }
+
+  for(int i=0; paths[i]; i++) {
+    sprintf(path, "%s/%s", paths[i], name);
+    if(!access(path, R_OK | X_OK)) {
+      free(paths);
+      free(PATH);
+      return 0;
+    }
+  }
+
+  free(paths);
+  free(PATH);
+
+  return -1;
+}
+
+
+/**
+ * Read a file from disk at the given path.
+ **/
+static uint8_t*
+sh_readfile(const char* path) {
+  uint8_t* buf;
+  ssize_t len;
+  FILE* file;
+
+  if(!(file=fopen(path, "rb"))) {
+    perror("fopen");
+    return 0;
+  }
+
+  if(fseek(file, 0, SEEK_END)) {
+    perror("fseek");
+    return 0;
+  }
+
+  if((len=ftell(file)) < 0) {
+    perror("ftell");
+    return 0;
+  }
+
+  if(fseek(file, 0, SEEK_SET)) {
+    perror("fseek");
+    return 0;
+  }
+
+  if(!(buf=malloc(len))) {
+    return 0;
+  }
+
+  if(fread(buf, 1, len, file) != len) {
+    perror("fread");
+    free(buf);
+    return 0;
+  }
+
+  if(fclose(file)) {
+    perror("fclose");
+    free(buf);
+    return 0;
+  }
+
+  return buf;
+}
+
 
 /**
  * Execute a shell command.
  **/
 static int
 sh_execute(char **argv) {
+  char path[PATH_MAX];
   builtin_cmd_t *cmd;
   pid_t pid = 0;
   uint8_t* elf;
@@ -171,7 +272,11 @@ sh_execute(char **argv) {
     return cmd(argc, argv);
   }
 
-  if((elf=bundle_find_elf(argv[0]))) {
+  if(!sh_which(argv[0], path) && (elf=sh_readfile(path))) {
+    pid = elfldr_spawn(STDOUT_FILENO, elf, argv);
+    free(elf);
+
+  } else if((elf=builtin_find_elf(argv[0]))) {
     pid = elfldr_spawn(STDOUT_FILENO, elf, argv);
   }
 
@@ -208,7 +313,50 @@ sh_prompt(void) {
  **/
 static void
 sh_greet(void) {
-  printf("Hello, world!\n");
+  sce_version_t v;
+  char s[1000];
+  int temp = 0;
+
+  printf("\n");
+  printf("Welcome to shsrv.elf running on pid %d, ", getppid());
+  printf("compiled %s at %s\n\n", __DATE__, __TIME__);
+
+  s[0] = '\0';
+  if(sceKernelGetHwModelName(s)) {
+    perror("sceKernelGetHwModelName");
+  } else {
+    printf("Model:   %20s\n", s);
+  }
+
+  if(sceKernelGetHwSerialNumber(s)) {
+    perror("sceKernelGetHwSerialNumber");
+  } else {
+    printf("S/N:     %20s\n", s);
+  }
+
+  if(sceKernelGetProsperoSystemSwVersion(&v)) {
+    perror("sceKernelGetSystemSwVersion");
+  } else {
+    printf("S/W:     %20s\n", v.str_version);
+  }
+
+  if(sceKernelGetSocSensorTemperature(0, &temp)) {
+    perror("sceKernelGetSocSensorTemperature");
+  } else {
+    printf("SoC temp:               %d °C\n", temp);
+  }
+
+  if(sceKernelGetCpuTemperature(&temp)) {
+    perror("sceKernelGetCpuTemperature");
+  } else {
+    printf("CPU temp:               %d °C\n", temp);
+  }
+
+  printf("CPU freq:            %4ld MHz\n",
+	 sceKernelGetCpuFrequency() / (1000*1000));
+
+  printf("\nType 'help' for a list of commands\n");
+  printf("\n");
 }
 
 

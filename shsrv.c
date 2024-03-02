@@ -32,7 +32,7 @@ along with this program; see the file COPYING. If not, see
 #include <ps5/klog.h>
 
 #include "elfldr.h"
-#include "sh_elf.c"
+#include "sh.elf.inc"
 
 
 /**

@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 John Törnblom
+/* Copyright (C) 2021 John Törnblom
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -17,21 +17,47 @@ along with this program; see the file COPYING. If not, see
 #pragma once
 
 #include <stdint.h>
+#include <stdlib.h>
 
 
 /**
- * Prototype for builtin commands.
+ * Prototype for main functions.
  **/
-typedef int (builtin_cmd_t)(int argc, char **argv);
+typedef int (main_t)(int argc, char **argv);
+
 
 
 /**
- * Find a builtin command by its name.
+ * Insert a command at the head of the sequence.
  **/
-builtin_cmd_t* builtin_find_cmd(const char* name);
+void command_define(const char *name, main_t *main);
 
 
 /**
- * Find a builtin ELF by its name.
+ * Find the command with a given name.
  **/
-uint8_t* builtin_find_elf(const char* name);
+main_t* command_find(const char *name);
+
+
+/**
+ * Return the current working directory of the calling process.
+ **/
+char* get_workdir(void);
+
+
+/**
+ * Normalize a path.
+ **/
+char* normpath(const char *path, char *buf, size_t bufsize);
+
+
+/**
+ * Return an absolute path.
+ **/
+char* abspath(const char *relpath);
+
+
+/**
+ * Dump a memory region to stdout.
+ **/
+void hexdump(void *data, size_t size);

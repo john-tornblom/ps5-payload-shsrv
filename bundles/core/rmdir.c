@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 John Törnblom
+/* Copyright (C) 2021 John Törnblom
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -14,10 +14,44 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
-#pragma once
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <limits.h>
+#include <stdlib.h>
+
+#include "_common.h"
 
 
 /**
- * Find a bundled elf by its name.
+ *
  **/
-unsigned char* bundle_find_elf(const char* name);
+static int
+rmdir_main(int argc, char **argv) {
+  if(argc <= 1) {
+    fprintf(stderr, "%s: missing operand\n", argv[0]);
+    return -1;
+  }
+
+  for(int i=0; i<argc-1; i++) {
+    char *path = abspath(argv[i+1]);
+
+    if(rmdir(path)) {
+      perror(path);
+    }
+
+    free(path);
+  }
+
+  return 0;
+}
+
+
+/**
+ *
+ **/
+__attribute__((constructor)) static void
+rmdir_constructor(void) {
+  command_define("rmdir", rmdir_main);
+}

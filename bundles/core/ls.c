@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 John Törnblom
+/* Copyright (C) 2021 John Törnblom
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -17,13 +17,13 @@ along with this program; see the file COPYING. If not, see
 // Code inspired by https://github.com/landley/toybox
 
 #include <dirent.h>
-#include <limits.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
-#include <unistd.h>
-
 #include <sys/stat.h>
+#include <limits.h>
+
+#include "_common.h"
 
 
 /**
@@ -57,26 +57,10 @@ mode_to_string(mode_t mode, char *buf) {
 
 
 /**
- * Return an absolute path.
+ *
  **/
-static char *
-abspath(const char *relpath) {
-  char buf[PATH_MAX+1];
-
-  if(relpath[0] == '/') {
-    strncpy(buf, relpath, PATH_MAX);
-  } else {
-    getcwd(buf, PATH_MAX);
-    strncat(buf, "/", PATH_MAX);
-    strncat(buf, relpath, PATH_MAX);
-  }
-
-  return strdup(buf);
-}
-
-
-int
-main(int argc, char **argv) {
+static int
+ls_main(int argc, char **argv) {
   struct stat statbuf;
   struct dirent *ent;
   char buf[PATH_MAX];
@@ -84,16 +68,16 @@ main(int argc, char **argv) {
   char *p;
   
   if(argc <= 1) {
-    p = getenv("PWD");
+    p = get_workdir();
   } else {
     p = argv[1];
   }
 
   p = abspath(p);
-    
+
   if(!(dir=opendir(p))) {
     perror(argv[0]);
-    return EXIT_FAILURE;
+    return -1;
   }
 
   while((ent=readdir(dir))) {
@@ -102,20 +86,27 @@ main(int argc, char **argv) {
       perror(buf);
       continue;
     }
-    
+
     mode_to_string(statbuf.st_mode, buf);
     fprintf(stdout, "%s %s\n", buf, ent->d_name);
   }
 
   free(p);
-  
+
   if(closedir(dir)) {
     perror(argv[0]);
-    return EXIT_FAILURE;
+    return -1;
   }
 
-  return EXIT_SUCCESS;
+  return 0;
 }
 
 
+/**
+ *
+ **/
+__attribute__((constructor)) static void
+ls_constructor(void) {
+  command_define("ls", ls_main);
+}
 

@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 John Törnblom
+/* Copyright (C) 2021 John Törnblom
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -14,35 +14,30 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
-#include <string.h>
+#include <stdio.h>
 
-#include "commands/env_elf.c"
-#include "commands/ls_elf.c"
-#include "commands/ps_elf.c"
+#include "_common.h"
+
 
 /**
- * Map names of bundled commands.
+ * 
  **/
-typedef struct bundle_map {
-  const char    *name;
-  unsigned char *elf;
-} bundle_map_t;
-
-
-static bundle_map_t map[] = {
-  {"env", env_elf},
-  {"ls", ls_elf},
-  {"ps", ps_elf},
-};
-
-
-unsigned char*
-bundle_find_elf(const char* name) {
-  for(int i=0; i<sizeof(map)/sizeof(map[0]); i++) {
-    if(!strcmp(name, map[i].name)) {
-      return map[i].elf;
-    }
+static int
+echo_main(int argc, char **argv) {
+  for(int i=1; i<argc; i++) {
+    printf("%s ", argv[i]);
   }
 
+  printf("\n");
+  
   return 0;
+}
+
+
+/**
+ *
+ **/
+__attribute__((constructor)) static void
+echo_constructor(void) {
+  command_define("echo", echo_main);
 }

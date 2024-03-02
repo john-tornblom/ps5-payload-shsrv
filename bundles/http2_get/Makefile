@@ -14,51 +14,24 @@
 # along with this program; see the file COPYING. If not see
 # <http://www.gnu.org/licenses/>.
 
-PS5_HOST ?= ps5
-PS5_PORT ?= 9021
-
 ifdef PS5_PAYLOAD_SDK
     include $(PS5_PAYLOAD_SDK)/make/x86_64-ps5-payload.inc
 else
     $(error PS5_PAYLOAD_SDK is undefined)
 endif
 
-CFLAGS := -Wall
-LDADD  := -lSceLibcInternal -lkernel_sys
+CFLAGS += -Wall
+LDADD  += -lkernel_sys -lSceNet -lSceSsl -lSceHttp2
 
-SUBDIRS := bundles/core bundles/http2_get
+all: http2_get.elf.inc
 
-TOPTARGETS := all clean
-
-$(TOPTARGETS): $(SUBDIRS)
-
-$(SUBDIRS):
-	make -C $@ $(MAKECMDGOALS)
-
-.PHONY: $(TOPTARGETS) $(SUBDIRS)
-
-
-all: shsrv.elf sh.elf
-
-shsrv.o: sh.elf.inc
-
-builtin.o: bundles/core/core.elf.inc bundles/http2_get/http2_get.elf.inc
-
-%.o: %.c
-	$(CC) -c $(CFLAGS) -o $@ $<
-
-shsrv.elf: shsrv.o elfldr.o pt.o
-	$(LD) -o $@ $^ $(LDADD)
-
-sh.elf: sh.o builtin.o elfldr.o pt.o
-	$(LD) -o $@ $^ $(LDADD)
-
-sh.elf.inc: sh.elf
+http2_get.elf.inc: http2_get.elf
 	xxd -i $^ > $@
 
+http2_get.elf: main.o
+	$(LD) $^ $(LDADD) -o $@
+
 clean:
-	rm -f *.o *.elf
+	rm -f *.o *.elf *.elf.c
 
-test: shsrv.elf
-	nc -q0 $(PS5_HOST) $(PS5_PORT) < $^
-
+test:

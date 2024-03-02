@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 John Törnblom
+/* Copyright (C) 2021 John Törnblom
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -14,24 +14,42 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
-#pragma once
+#include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#include <stdint.h>
-
-
-/**
- * Prototype for builtin commands.
- **/
-typedef int (builtin_cmd_t)(int argc, char **argv);
+#include "_common.h"
 
 
 /**
- * Find a builtin command by its name.
+ * 
  **/
-builtin_cmd_t* builtin_find_cmd(const char* name);
+static int
+id_main(int argc, char **argv) {
+  uid_t egid = getegid();
+  gid_t rgid = getgid();
+  uid_t euid = geteuid();
+  gid_t ruid = getuid();
+
+  printf("uid=%u gid=%u", ruid, rgid);
+
+  if(euid != ruid) {
+    printf(" euid=%u", euid);
+  }
+  if (egid != rgid) {
+    printf(" euid=%u", egid);
+  }
+
+  printf("\n");
+
+  return 0;
+}
 
 
 /**
- * Find a builtin ELF by its name.
+ *
  **/
-uint8_t* builtin_find_elf(const char* name);
+__attribute__((constructor)) static void
+id_constructor(void) {
+  command_define("id", id_main);
+}

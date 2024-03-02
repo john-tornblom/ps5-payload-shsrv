@@ -14,24 +14,16 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
-#pragma once
-
-#include <stdint.h>
+#include "_common.h"
 
 
-/**
- * Prototype for builtin commands.
- **/
-typedef int (builtin_cmd_t)(int argc, char **argv);
+int
+main(int argc, char** argv) {
+  main_t* cmd;
 
+  if((cmd=command_find(argv[0]))) {
+    return cmd(argc, argv);
+  }
 
-/**
- * Find a builtin command by its name.
- **/
-builtin_cmd_t* builtin_find_cmd(const char* name);
-
-
-/**
- * Find a builtin ELF by its name.
- **/
-uint8_t* builtin_find_elf(const char* name);
+  return -1;
+}

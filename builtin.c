@@ -24,10 +24,12 @@ along with this program; see the file COPYING. If not, see
 #include <unistd.h>
 
 #include <sys/stat.h>
-
 #include <ps5/kernel.h>
 
 #include "builtin.h"
+
+#include "bundles/core/core.elf.inc"
+#include "bundles/http2_get/http2_get.elf.inc"
 
 
 #define ispathsep(ch) ((ch) == '/' || (ch) == '\\')
@@ -38,10 +40,22 @@ along with this program; see the file COPYING. If not, see
 /**
  * Map names of builtin commands.
  **/
-typedef struct builtin_map {
+typedef struct builtin_cmd_map {
   const char    *name;
   builtin_cmd_t *cmd;
-} builtin_map_t;
+} builtin_cmd_map_t;
+
+
+/**
+ * Map names of builtin ELFs.
+ **/
+typedef struct builtin_elf_map {
+  const char    *name;
+  unsigned char *elf;
+} builtin_elf_map_t;
+
+
+static int main_help(int argc, char **argv);
 
 
 /**
@@ -245,7 +259,7 @@ main_export(int argc, char **argv) {
   char *name;
   char *val;
   char *sep;
-  
+
   if(argc < 2 || !(sep=strstr(argv[1], "="))) {
     printf("usage: %s NAME=value\n", argv[0]);
     return EXIT_FAILURE;
@@ -259,7 +273,7 @@ main_export(int argc, char **argv) {
     perror(argv[0]);
     return EXIT_FAILURE;
   }
-  
+
   return EXIT_SUCCESS;
 }
 
@@ -270,9 +284,10 @@ main_export(int argc, char **argv) {
 static int
 main_exec(int argc, char** argv) {
   if(argc <= 1) {
+    fprintf(stderr, "%s: missing operand\n", argv[0]);
     return EXIT_FAILURE;
   }
-  
+
   argv[argc] = NULL;
   execvp(argv[1], (char **) argv + 1);
   perror(argv[1]);
@@ -282,24 +297,135 @@ main_exec(int argc, char** argv) {
 
 
 /**
+ * 
+ **/
+static int
+main_sleep(int argc, char **argv) {
+  if(argc <= 1) {
+    fprintf(stderr, "%s: missing operand\n", argv[0]);
+    return -1;
+  }
+
+  unsigned int seconds = atoi(argv[1]);
+  sleep(seconds);
+
+  return 0;
+}
+
+
+/**
  * Lookup table for builtin commands.
  **/
-static builtin_map_t map[] = {
+static builtin_cmd_map_t cmd_map[] = {
   {"cd", main_cd},
   {"chroot", main_chroot},
   {"exec", main_exec},
   {"exit", main_exit},
   {"export", main_export},
+  {"help", main_help},
+  {"sleep", main_sleep},
 };
+
+
+/**
+ * Lookup table for builtin ELFs.
+ **/
+static builtin_elf_map_t elf_map[] = {
+  {"cat", core_elf},
+  {"chgrp", core_elf},
+  {"chmod", core_elf},
+  {"chown", core_elf},
+  {"cmp", core_elf},
+  {"cp", core_elf},
+  {"echo", core_elf},
+  {"env", core_elf},
+  {"file", core_elf},
+  {"find", core_elf},
+  {"grep", core_elf},
+  {"hexdump", core_elf},
+  {"id", core_elf},
+  {"kill", core_elf},
+  {"ln", core_elf},
+  {"ls", core_elf},
+  {"mkdir", core_elf},
+  {"mknod", core_elf},
+  {"mount", core_elf},
+  {"mv", core_elf},
+  {"notify", core_elf},
+  {"ps", core_elf},
+  {"pwd", core_elf},
+  {"rm", core_elf},
+  {"rmdir", core_elf},
+  {"sfocreate", core_elf},
+  {"sfoinfo", core_elf},
+  {"stat", core_elf},
+  {"sum", core_elf},
+  {"sync", core_elf},
+  {"sysctl", core_elf},
+  {"touch", core_elf},
+  {"umount", core_elf},
+
+  {"http2_get", http2_get_elf},
+};
+
+
+static int
+qsort_cmp_names(const void *a, const void *b) {
+    return strcmp(*(const char **)a, *(const char **)b);
+}
+
+
+/**
+ * Print a list of available commands to stdout.
+ **/
+static int
+main_help(int argc, char **argv) {
+  size_t cmd_map_len = (sizeof(cmd_map)/sizeof(cmd_map[0]));
+  size_t elf_map_len = (sizeof(elf_map)/sizeof(elf_map[0]));
+  size_t n = cmd_map_len + elf_map_len;
+  const char* names[n];
+
+  for(size_t i=0; i<cmd_map_len; i++) {
+    names[i] = cmd_map[i].name;
+  }
+  for(size_t i=0; i<elf_map_len; i++) {
+    names[cmd_map_len+i] = elf_map[i].name;
+  }
+
+  qsort(names, n, sizeof(const char*), qsort_cmp_names);
+
+  printf("Builtin commands:\n");
+  for(size_t i=0; i<n; i++) {
+    printf("  %s\n", names[i]);
+  }
+
+  return 0;
+}
 
 
 builtin_cmd_t*
 builtin_find_cmd(const char* name) {
-  for(int i=0; i<sizeof(map)/sizeof(map[0]); i++) {
-    if(!strcmp(name, map[i].name)) {
-      return map[i].cmd;
+  size_t n = (sizeof(cmd_map)/sizeof(cmd_map[0]));
+
+  for(size_t i=0; i<n; i++) {
+    if(!strcmp(name, cmd_map[i].name)) {
+      return cmd_map[i].cmd;
     }
   }
   
+  return NULL;
+}
+
+
+uint8_t*
+builtin_find_elf(const char* name) {
+  size_t n = sizeof(elf_map)/sizeof(elf_map[0]);
+
+  for(size_t i=0; i<n; i++) {
+    if(!strcmp(name, elf_map[i].name)) {
+      return elf_map[i].elf;
+    }
+  }
+
   return NULL;
 }

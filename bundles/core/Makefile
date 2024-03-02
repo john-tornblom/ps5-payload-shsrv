@@ -23,20 +23,21 @@ endif
 CFLAGS += -Wall
 LDADD  += -lkernel_sys
 
-SRCS = env_elf.c ls_elf.c ps_elf.c
+SRCS := $(wildcard *.c)
+OBJS := $(SRCS:.c=.o)
 
-all: $(SRCS)
+all: core.elf.inc
+
+core.elf.inc: core.elf
+	xxd -i $^ > $@
+
+core.elf: $(OBJS)
+	$(LD) -o $@ $^ $(LDADD)
+
+clean:
+	rm -f *.o *.elf *.elf.c
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $<
 
-%.elf: %.o
-	$(LD) -o $@ $^ $(LDADD)
-
-%_elf.c: %.elf
-	xxd -i $^ > $@
-
-clean:
-	rm -f *.o *.elf *_elf.c
-
-
+test:

@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 John Törnblom
+/* Copyright (C) 2021 John Törnblom
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -14,24 +14,37 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
-#pragma once
+#include <stdio.h>
 
-#include <stdint.h>
+#include "_common.h"
 
 
-/**
- * Prototype for builtin commands.
- **/
-typedef int (builtin_cmd_t)(int argc, char **argv);
+extern char **environ;
 
 
 /**
- * Find a builtin command by its name.
+ *
  **/
-builtin_cmd_t* builtin_find_cmd(const char* name);
+static int
+env_main(int argc, char **argv) {
+  char **var;
+
+  if(!environ) {
+    return 0;
+  }
+  
+  for(var=environ; *var; var++) {
+    fprintf(stdout, "%s\n", *var);
+  }
+  
+  return 0;
+}
 
 
 /**
- * Find a builtin ELF by its name.
+ *
  **/
-uint8_t* builtin_find_elf(const char* name);
+__attribute__((constructor)) static void
+env_constructor(void) {
+  command_define("env", env_main);
+}

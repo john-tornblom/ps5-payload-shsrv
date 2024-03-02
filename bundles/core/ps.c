@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 John Törnblom
+/* Copyright (C) 2023 John Törnblom
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -14,7 +14,6 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
-
 #include <sys/types.h>
 #include <sys/proc.h>
 #include <sys/user.h>
@@ -26,6 +25,8 @@ along with this program; see the file COPYING. If not, see
 
 #include <ps5/kernel.h>
 
+#include "_common.h"
+
 
 typedef struct app_info {
   uint32_t app_id;
@@ -36,6 +37,7 @@ typedef struct app_info {
 
 
 int sceKernelGetAppInfo(pid_t pid, app_info_t *info);
+int sceKernelDlsym(int, const char*, void*);
 
 
 static char *state_abbrev[] = {
@@ -43,8 +45,8 @@ static char *state_abbrev[] = {
 };
 
 
-int
-main(int argc, char** argv) {
+static int
+ps_main(int argc, char** argv) {
   int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PROC, 0};
   app_info_t appinfo;
   size_t buf_size;
@@ -70,7 +72,7 @@ main(int argc, char** argv) {
   }
 
   printf("     PID      PPID     PGID      SID      UID           AuthId"
-	 "    State   Tracer  AppId    TitleId  Command\n");
+	 "    State     AppId    TitleId  Command\n");
   for(void *ptr=buf; ptr<(buf+buf_size);) {
     struct kinfo_proc *ki = (struct kinfo_proc*)ptr;
     ptr += ki->ki_structsize;
@@ -79,10 +81,10 @@ main(int argc, char** argv) {
       memset(&appinfo, 0, sizeof(appinfo));
     }
 
-    printf("%8u  %8u %8u %8u %8u %016lx    %5s %8u %08x  %9s  %s\n",
+    printf("%8u  %8u %8u %8u %8u %016lx    %5s  %08x  %9s  %s\n",
 	   ki->ki_pid, ki->ki_ppid, ki->ki_pgid, ki->ki_sid,
 	   ki->ki_uid, kernel_get_ucred_authid(ki->ki_pid),
-	   state_abbrev[(int)ki->ki_stat], ki->ki_tracer, appinfo.app_id,
+	   state_abbrev[(int)ki->ki_stat], appinfo.app_id,
 	   appinfo.title_id, ki->ki_comm);
   }
 
@@ -91,3 +93,11 @@ main(int argc, char** argv) {
   return 0;
 }
 
+
+/**
+ *
+ **/
+__attribute__((constructor)) static void
+ps_constructor(void) {
+  command_define("ps", ps_main);
+}

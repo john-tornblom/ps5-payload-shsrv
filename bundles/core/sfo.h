@@ -14,17 +14,34 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
-#include <stdio.h>
+// Code derived from https://github.com/TheOfficialFloW/VitaShell
+
+#pragma once
+
+#include <stdint.h>
+
+typedef struct sfo_header {
+  uint32_t magic;
+  uint32_t version;
+  uint32_t keys_offset;
+  uint32_t data_offset;
+  uint32_t count;
+} __attribute__((packed)) sfo_header_t;
 
 
-/**
- *
- **/
-int
-main(int argc, char **argv, char** envp) {
-  for(char** var=envp; *var; var++) {
-    puts(*var);
-  }
+typedef struct sfo_entry {
+  uint16_t key_offset;
+  uint8_t  alignment;
+  uint8_t  type;
+  uint32_t val_length;
+  uint32_t val_size;
+  uint32_t val_offset;
+} __attribute__((packed)) sfo_entry_t;
 
-  return 0;
-}
+
+#define TYPE_BIN 0
+#define TYPE_STR 2
+#define TYPE_INT 4
+
+#define MAGIC 0x46535000
+
