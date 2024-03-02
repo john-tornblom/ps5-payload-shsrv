@@ -113,7 +113,7 @@ mount_fs(char* fstype, char* fspath, char* device, char* options,
 
   if(options) {
     char **opts = split_string(options, ",");
-    for(int i=0; opts[i]!=NULL; i++) {
+    for(int i=0; opts[i]; i++) {
       char *name = opts[i];
       char *value = NULL;
       char *delim = strstr(opts[i], "=");
@@ -139,19 +139,19 @@ getmntinfo(struct statfs **bufp, int mode) {
   int size = 0;
   int size2 = 0;
 
-  if((nitems = syscall(SYS_getfsstat, 0, 0, MNT_NOWAIT)) < 0) {
+  if((nitems=syscall(SYS_getfsstat, 0, 0, MNT_NOWAIT)) < 0) {
     return -1;
   }
 
   size = sizeof(struct statfs) * nitems;
 
-  if(!(buf = malloc(size))) {
+  if(!(buf=malloc(size))) {
     return -1;
   }
 
   memset(buf, 0, size);
 
-  if((size2 = syscall(SYS_getfsstat, buf, size, mode)) < 0) {
+  if((size2=syscall(SYS_getfsstat, buf, size, mode)) < 0) {
     return -1;
   }
 
@@ -166,7 +166,7 @@ print_mountpoints(void) {
   struct statfs *buf;
   int nitems;
 
-  if((nitems = getmntinfo(&buf, MNT_WAIT)) < 0) {
+  if((nitems=getmntinfo(&buf, MNT_WAIT)) < 0) {
     return -1;
   }
 
@@ -193,7 +193,7 @@ mount_main(int argc, char **argv) {
   int rc = 0;
   int c;
 
-  while ((c = getopt(argc, argv, "t:o:uh")) != -1) {
+  while ((c=getopt(argc, argv, "t:o:uh")) != -1) {
     switch (c) {
     case 't':
       fstype = strdup(optarg);
@@ -254,9 +254,6 @@ mount_main(int argc, char **argv) {
 }
 
 
-/**
- *
- **/
 __attribute__((constructor)) static void
 mount_constructor(void) {
   command_define("mount", mount_main);
