@@ -4,25 +4,16 @@ that has been jailbroken via the [BD-J][bdj] or the [webkit][webkit] entry point
 The server provides connected clients with a couple of basic UNIX-like commands,
 e.g., cd, mkdir, stat, etc.
 
-## Building
-Assuming you have the [ps5-payload-sdk][sdk] installed on a POSIX machine,
-the payload can be compiled using the following two commands:
+## Quick-start
+To deploy the shell server, first launch the [ps5-payload-elfldr][elfldr], then
+load the payload and connect using a telnet client by issuing the following commands:
+
 ```console
-john@localhost:ps5-payload-shsrv$ export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
-john@localhost:ps5-payload-shsrv$ make
+john@localhost:~$ export PS5_HOST=ps5
+john@localhost:~$ wget -q -O - https://github.com/john-tornblom/ps5-payload-shsrv/releases/download/release%2Fv0.2/Payload.zip  | gunzip -c -d | nc -q0 $PS5_HOST 9021
+john@localhost:~$ telnet $PS5_HOST 2323
 ```
 
-To deploy the payload, first launch the [ps5-payload-elfldr][elfldr], then
-load shsrv.elf by issuing the following two commands:
-```console
-john@localhost:ps5-payload-shsrv$ export PS5_HOST=ps5
-john@localhost:ps5-payload-shsrv$ nc -q0 $PS5_HOST 9021 < shsrv.elf
-```
-
-Once deployed, the server accepts telnet-like clients on port 2323:
-```console
-john@localhost:ps5-payload-shsrv$ telnet $PS5_HOST 92323
-```
 ## Usage
 There are a handful of rudimentary commands available, e.g., cd, ls, and mkdir.
 Type `help` in a connected telnet shell for more information. For example, to
@@ -44,10 +35,19 @@ PATH enviroment variable, which is initialized to /data/hbroot/bin and
 /mnt/usb0/hbroot/bin
 
 ```console
-john@localhost:tmp$ wget https://github.com/john-tornblom/ps5-payload-sdk/releases/download/releases%2Fv0.9/Payload.binaries.zip
+john@localhost:tmp$ wget https://github.com/john-tornblom/ps5-payload-sdk/releases/download/releases%2Fv0.8/Payload.binaries.zip
 john@localhost:tmp$ unzip Payload.binaries.zip samples/hello_sprx/hello_sprx.elf
 john@localhost:tmp$ curl -T samples/hello_sprx/hello_sprx.elf ftp://ps5:2121/data/hbroot/bin/
 john@localhost:tmp$ echo "hello_sprx.elf" | nc -q0 $PS5_HOST 2323
+```
+
+## Building
+Assuming you have the [ps5-payload-sdk][sdk] installed on a POSIX machine,
+the payload can be compiled and deployed using the following commands:
+```console
+john@localhost:ps5-payload-shsrv$ export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
+john@localhost:ps5-payload-shsrv$ make
+john@localhost:ps5-payload-shsrv$ nc -q0 $PS5_HOST 9021 < shsrv.elf
 ```
 
 ## Limitations
