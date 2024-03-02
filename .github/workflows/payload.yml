@@ -48,5 +48,5 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: Payload
-        path: ./*.elf
+        path: ./shsrv.elf
         if-no-files-found: error
