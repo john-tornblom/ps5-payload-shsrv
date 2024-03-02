@@ -378,7 +378,10 @@ int main(int argc, char** argv) {
   while(1) {
     sh_prompt();
 
-    line = sh_readline();
+    if(!(line=sh_readline())) {
+      return 0;
+    }
+
     if(!(cmds=sh_splitstring(line, SHELL_CMD_DELIM))) {
       free(line);
       continue;
