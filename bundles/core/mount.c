@@ -61,11 +61,12 @@ static char**
 split_string(char *line, char *delim) {
   int bufsize = 64;
   int position = 0;
-  char **tokens = malloc(bufsize * sizeof(char*));
+  char **tokens = calloc(bufsize, sizeof(char));
   char *token, **tokens_backup;
   char *state = 0;
 
   if(!tokens) {
+    perror("calloc");
     return NULL;
   }
 
@@ -79,6 +80,7 @@ split_string(char *line, char *delim) {
       tokens_backup = tokens;
       tokens = realloc(tokens, bufsize * sizeof(char*));
       if(!tokens) {
+	perror("realloc");
 	free(tokens_backup);
 	return NULL;
       }
