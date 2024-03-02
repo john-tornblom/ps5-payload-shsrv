@@ -36,7 +36,7 @@ along with this program; see the file COPYING. If not, see
 
 
 /**
- *
+ * Serve access to sh.elf.
  **/
 static int
 serve_sh(uint16_t port) {
@@ -170,7 +170,7 @@ find_pid(const char* name) {
 
 
 /**
- *
+ * Initialize stdio to /dev/console
  **/
 static void
 init_stdio(void) {
@@ -188,6 +188,9 @@ init_stdio(void) {
 }
 
 
+/**
+ * Launch shsrv.elf.
+ **/
 int
 main(void) {
   int port = 2323;
@@ -213,4 +216,3 @@ main(void) {
 
   return 0;
 }
-

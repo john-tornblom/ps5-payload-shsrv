@@ -309,7 +309,7 @@ sh_prompt(void) {
 
 
 /**
- *
+ * Output a greeting to stdout.
  **/
 static void
 sh_greet(void) {
@@ -360,6 +360,9 @@ sh_greet(void) {
 }
 
 
+/**
+ * Launch sh.elf.
+ **/
 int main(int argc, char** argv) {
   int pipefd[2] = {-1, -1};
   char *line = NULL;

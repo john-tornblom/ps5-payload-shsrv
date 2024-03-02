@@ -18,4 +18,7 @@ along with this program; see the file COPYING. If not, see
 
 #include <unistd.h>
 
+/**
+ * Spawn a new process.
+ **/
 pid_t elfldr_spawn(int stdio, uint8_t *elf, char* argv[]);
