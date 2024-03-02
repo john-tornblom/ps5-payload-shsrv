@@ -97,27 +97,34 @@ mount_fs(char* fstype, char* fspath, char* device, char* options,
   struct iovec* iov = NULL;
   int iovlen = 0;
 
-  build_iovec(&iov, &iovlen, "fstype", fstype);
-  build_iovec(&iov, &iovlen, "fspath", fspath);
+  if(fstype) {
+    build_iovec(&iov, &iovlen, "fstype", fstype);
+  }
+
+  if(fspath) {
+    build_iovec(&iov, &iovlen, "fspath", fspath);
+  }
 
   if(device) {
     build_iovec(&iov, &iovlen, "from", device);
   }
 
-  char **opts = split_string(options, ",");
-  for(int i=0; opts[i]!=NULL; i++) {
-    char *name = opts[i];
-    char *value = NULL;
-    char *delim = strstr(opts[i], "=");
+  if(options) {
+    char **opts = split_string(options, ",");
+    for(int i=0; opts[i]!=NULL; i++) {
+      char *name = opts[i];
+      char *value = NULL;
+      char *delim = strstr(opts[i], "=");
 
-    if(delim) {
-      *delim = 0;
-      value = delim+1;
+      if(delim) {
+	*delim = 0;
+	value = delim+1;
+      }
+
+      build_iovec(&iov, &iovlen, name, value);
     }
-
-    build_iovec(&iov, &iovlen, name, value);
+    free(opts);
   }
-  free(opts);
 
   return syscall(SYS_nmount, iov, iovlen, flags);
 }
