@@ -118,7 +118,7 @@ serve_sh(uint16_t port) {
       klog_perror("accept");
       break;
     }
-    elfldr_spawn(connfd, sh_elf, argv);
+    elfldr_spawn(connfd, connfd, connfd, sh_elf, argv);
     close(connfd);
   }
 

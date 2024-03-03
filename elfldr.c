@@ -546,7 +546,8 @@ elfldr_raise_privileges(pid_t pid) {
  * Execute an ELF inside the process with the given pid.
  **/
 int
-elfldr_exec(pid_t pid, int stdio, uint8_t* elf) {
+elfldr_exec(int stdin_fd, int stdout_fd, int stderr_fd,
+	    pid_t pid, uint8_t* elf) {
   uint8_t caps[16];
   intptr_t jaildir;
   intptr_t rootdir;
@@ -577,18 +578,23 @@ elfldr_exec(pid_t pid, int stdio, uint8_t* elf) {
     return -1;
   }
 
-  if(stdio > 0) {
-    stdio = pt_rdup(pid, getpid(), stdio);
-
-    pt_close(pid, STDERR_FILENO);
-    pt_close(pid, STDOUT_FILENO);
+  if(stdin_fd >= 0) {
+    stdin_fd = pt_rdup(pid, getpid(), stdin_fd);
     pt_close(pid, STDIN_FILENO);
-
-    pt_dup2(pid, stdio, STDIN_FILENO);
-    pt_dup2(pid, stdio, STDOUT_FILENO);
-    pt_dup2(pid, stdio, STDERR_FILENO);
-
-    pt_close(pid, stdio);
+    pt_dup2(pid, stdin_fd, STDIN_FILENO);
+    pt_close(pid, stdin_fd);
+  }
+  if(stdout_fd >= 0) {
+    stdout_fd = pt_rdup(pid, getpid(), stdout_fd);
+    pt_close(pid, STDOUT_FILENO);
+    pt_dup2(pid, stdout_fd, STDOUT_FILENO);
+    pt_close(pid, stdout_fd);
+  }
+  if(stderr_fd >= 0) {
+    stderr_fd = pt_rdup(pid, getpid(), stderr_fd);
+    pt_close(pid, STDERR_FILENO);
+    pt_dup2(pid, stderr_fd, STDERR_FILENO);
+    pt_close(pid, stderr_fd);
   }
 
   if(elfldr_prepare_exec(pid, elf)) {
@@ -627,7 +633,8 @@ elfldr_exec(pid_t pid, int stdio, uint8_t* elf) {
  * Execute an ELF inside a new process.
  **/
 pid_t
-elfldr_spawn(int stdio, uint8_t* elf, char** argv) {
+elfldr_spawn(int stdin_fd, int stdout_fd, int stderr_fd,
+	     uint8_t* elf, char** argv) {
   uint8_t int3instr = 0xcc;
   intptr_t brkpoint;
   uint8_t orginstr;
@@ -682,7 +689,7 @@ elfldr_spawn(int stdio, uint8_t* elf, char** argv) {
 
   // Execute the ELF
   elfldr_set_procname(pid, argv[0]);
-  if(elfldr_exec(pid, stdio, elf)) {
+  if(elfldr_exec(stdin_fd, stdout_fd, stderr_fd, pid, elf)) {
     kill(pid, SIGKILL);
     return -1;
   }

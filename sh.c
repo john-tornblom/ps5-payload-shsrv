@@ -165,6 +165,7 @@ sh_waitpid(pid_t pid) {
   }
 }
 
+
 /**
  * Search the env varriable PATH for a file with the given name.
  **/
@@ -273,11 +274,11 @@ sh_execute(char **argv) {
   }
 
   if(!sh_which(argv[0], path) && (elf=sh_readfile(path))) {
-    pid = elfldr_spawn(STDOUT_FILENO, elf, argv);
+    pid = elfldr_spawn(STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO, elf, argv);
     free(elf);
 
   } else if((elf=builtin_find_elf(argv[0]))) {
-    pid = elfldr_spawn(STDOUT_FILENO, elf, argv);
+    pid = elfldr_spawn(STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO, elf, argv);
   }
 
   if(pid < 0) {
