@@ -1,4 +1,4 @@
-/* Copyright (C) 2021 John Törnblom
+/* Copyright (C) 2024 John Törnblom
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -14,107 +14,83 @@ You should have received a copy of the GNU General Public License
 along with this program; see the file COPYING. If not, see
 <http://www.gnu.org/licenses/>.  */
 
-// Code inspired by http://members.tip.net.au/%7Edbell/programs/sash-3.8.tar.gz
-
-#include <stdio.h>
-#include <string.h>
 #include <ctype.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
-#include <signal.h>
 
 #include "_common.h"
 
 
-#define BUF_SIZE 1024*8
-
-/**
- * state variable for catching user interupt signals
- **/
-static int interupted = 0;
+#define MAX_LINE_LENGTH 0x1000
 
 
 /**
- * Catch user interupts
+ * Command line options.
  **/
-static void
-on_SIGINT(int val) {
-  interupted = 1;
+static int g_ignore_case = 0;
+static int g_line_number = 0;
+
+
+/**
+ * Match a line with the given pattern.
+ **/
+static int
+grep_match(const char* line, const char *pattern) {
+  char* patternbuf = strdup(pattern);
+  char* linebuf = strdup(line);
+  int retval = 0;
+
+  if(g_ignore_case) {
+    for(size_t i=0; i<strlen(linebuf); i++) {
+      linebuf[i] = tolower(linebuf[i]);
+    }
+
+    for(size_t i=0; i<strlen(patternbuf); i++) {
+      patternbuf[i] = tolower(patternbuf[i]);
+    }
+  }
+
+  retval = !!strstr(linebuf, patternbuf);
+
+  free(patternbuf);
+  free(linebuf);
+
+  return retval;
 }
 
 
-/*
- * See if the specified word is found in the specified string.
- */
-static int
-search(const char *string, const char *word, int ignore_case) {
-  const char *cp1;
-  const char *cp2;
-  int len;
-  int low_first;
-  int ch1;
-  int ch2;
+/**
+ * Search a file for the given pattern.
+ **/
+static void
+grep_search(const char* prefix, FILE *fp, const char *pattern) {
+  char line[MAX_LINE_LENGTH];
+  size_t n = 0;
 
-  signal(SIGINT, on_SIGINT);
+  while(fgets(line, sizeof(line), fp)) {
+    n++;
 
-  len = strlen(word);
-
-  if (!ignore_case) {
-    while (1) {
-      if(!(string = strchr(string, word[0]))) {
-	return 0;
+    if(grep_match(line, pattern)) {
+      if(prefix) {
+	printf("%s:", prefix);
       }
-      if(memcmp(string, word, len) == 0) {
-	return 1;
+      if(g_line_number) {
+	printf("%ld:", n);
       }
-      string++;
+      printf("%s", line);
     }
   }
+}
 
-  /*
-   * Here if we need to check case independence.
-   * Do the search by lower casing both strings.
-   */
-  low_first = *word;
-  if (isupper(low_first)) {
-    low_first = tolower(low_first);
-  }
 
-  while(1) {
-    while (*string && (*string != low_first) &&
-	   (!isupper(*string) || (tolower(*string) != low_first))) {
-      string++;
-    }
-
-    if (*string == '\0') {
-      return 0;
-    }
-
-    cp1 = string;
-    cp2 = word;
-
-    do {
-      if (*cp2 == '\0') {
-	return 1;
-      }
-
-      ch1 = *cp1++;
-
-      if (isupper(ch1)) {
-	ch1 = tolower(ch1);
-      }
-
-      ch2 = *cp2++;
-
-      if (isupper(ch2)) {
-	ch2 = tolower(ch2);
-      }
-    }
-    while (ch1 == ch2);
-    string++;
-  }
+/**
+ * Print command line options to stdout.
+ **/
+static void
+grep_usage(const char* prog) {
+  printf("usage: %s [-i] [-n] STRING [PATH]...\n", prog);
 }
 
 
@@ -123,99 +99,46 @@ search(const char *string, const char *word, int ignore_case) {
  **/
 static int
 grep_main(int argc, char** argv) {
-  FILE * fp;
-  const char* word;
-  const char* name;
-  const char* cp;
-  int tell_name;
-  int ignore_case;
-  int tell_line;
-  long line;
-  char buf[BUF_SIZE];
-  int r;
+  const char* pattern;
+  FILE *fp;
+  int c;
 
-  if(argc <= 1) {
-    fprintf(stderr, "%s: missing operand\n", argv[0]);
-    return 1;
-  }
-
-  r = 1;
-  ignore_case = 0;
-  tell_line = 0;
-
-  argc--;
-  argv++;
-
-  if(**argv == '-') {
-    argc--;
-    cp = *argv++;
-
-    while(*++cp) {
-      switch(*cp) {
-      case 'i':
-	ignore_case = 1;
-	break;
-
-      case 'n':
-	tell_line = 1;
-	break;
-
-      default:
-	fprintf(stderr, "Unknown option\n");
-	return 1;
-      }
+  while((c=getopt(argc, argv, "in")) > 0) {
+    switch(c) {
+    case 'i':
+      g_ignore_case = 1;
+      break;
+    case 'n':
+      g_line_number = 1;
+      break;
+    default:
+      grep_usage(argv[0]);
+      return EXIT_FAILURE;
     }
   }
 
-  word = *argv++;
-  argc--;
+  if(optind == argc) {
+    grep_usage(argv[0]);
+    return EXIT_FAILURE;
+  }
 
-  tell_name = (argc > 1);
+  pattern = argv[optind++];
 
-  while(argc-- > 0) {
-    name = *argv++;
+  if(optind == argc) {
+    grep_search(NULL, stdin, pattern);
+    return EXIT_SUCCESS;
+  }
 
-    if (!(fp = fopen(name, "r"))) {
-      perror(name);
-      r = 1;
+  for(int i=optind; i<argc; i++) {
+    if(!(fp=fopen(argv[i], "r"))) {
+      perror(argv[i]);
       continue;
     }
-
-    line = 0;
-
-    while(fgets(buf, sizeof(buf), fp)) {
-      if(interupted) {
-	fclose(fp);
-	return 1;
-      }
-
-      line++;
-
-      cp = &buf[strlen(buf) - 1];
-      if (*cp != '\n') {
-	fprintf(stderr, "%s: Line too long\n", name);
-      }
-
-      if(search(buf, word, ignore_case)) {
-	r = 0;
-	if(tell_name) {
-	  printf("%s: ", name);
-	}
-	if(tell_line) {
-	  printf("%ld: ", line);
-	}
-	fputs(buf, stdout);
-      }
-    }
-
-    if(ferror(fp)) {
-      perror(name);
-    }
-
+    grep_search(argv[i], fp, pattern);
     fclose(fp);
   }
 
-  return r;
+  return EXIT_SUCCESS;
 }
 
 
