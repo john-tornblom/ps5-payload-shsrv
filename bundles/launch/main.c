@@ -42,7 +42,7 @@ int sceSystemServiceLaunchApp(const char* title_id, char** argv,
 static int
 launch_browser(int argc, char** argv) {
   if(argc < 2) {
-    puts("usage: %s <URL>");
+    fprintf(stderr, "usage: %s <URL>\n", argv[0]);
     return EXIT_FAILURE;
   }
 
@@ -60,7 +60,7 @@ launch_bigapp(int argc, char** argv) {
   app_launch_ctx_t ctx = {0};
 
   if(argc < 2) {
-    puts("usage: %s <APPID>");
+    fprintf(stderr, "usage: %s <APPID>\n", argv[0]);
     return EXIT_FAILURE;
   }
 
