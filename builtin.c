@@ -373,7 +373,7 @@ static builtin_elf_map_t elf_map[] = {
 
 static int
 qsort_cmp_names(const void *a, const void *b) {
-    return strcmp(*(const char **)a, *(const char **)b);
+  return strcmp(*(const char **)a, *(const char **)b);
 }
 
 

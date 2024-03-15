@@ -35,7 +35,7 @@ core.elf: $(OBJS)
 	$(LD) -o $@ $^ $(LDADD)
 
 clean:
-	rm -f *.o *.elf *.elf.c
+	rm -f *.o *.elf *.elf.inc
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $<

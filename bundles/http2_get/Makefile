@@ -32,6 +32,6 @@ http2_get.elf: main.o
 	$(LD) $^ $(LDADD) -o $@
 
 clean:
-	rm -f *.o *.elf *.elf.c
+	rm -f *.o *.elf *.elf.inc
 
 test:
