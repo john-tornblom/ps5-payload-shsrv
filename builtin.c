@@ -30,7 +30,7 @@ along with this program; see the file COPYING. If not, see
 
 #include "bundles/core/core.elf.inc"
 #include "bundles/http2_get/http2_get.elf.inc"
-#include "bundles/browser/browser.elf.inc"
+#include "bundles/launch/launch.elf.inc"
 
 
 #define ispathsep(ch) ((ch) == '/' || (ch) == '\\')
@@ -367,7 +367,8 @@ static builtin_elf_map_t elf_map[] = {
   {"umount", core_elf},
 
   {"http2_get", http2_get_elf},
-  {"browser", browser_elf},
+  {"browser", launch_elf},
+  {"bigapp", launch_elf},
 };
 
 

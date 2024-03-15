@@ -26,7 +26,7 @@ endif
 CFLAGS := -Wall
 LDADD  := -lSceLibcInternal -lkernel_sys
 
-SUBDIRS := bundles/core bundles/http2_get bundles/browser
+SUBDIRS := bundles/core bundles/http2_get bundles/launch
 
 TOPTARGETS := all clean
 
@@ -43,7 +43,7 @@ all: shsrv.elf sh.elf
 shsrv.o: sh.elf.inc
 
 builtin.o: bundles/core/core.elf.inc bundles/http2_get/http2_get.elf.inc \
-           bundles/browser/browser.elf.inc
+           bundles/launch/launch.elf.inc
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $<

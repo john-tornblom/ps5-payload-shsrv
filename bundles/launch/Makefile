@@ -23,12 +23,12 @@ endif
 CFLAGS += -Wall -O2
 LDADD  += -lSceSystemService -lSceUserService
 
-all: browser.elf.inc
+all: launch.elf.inc
 
-browser.elf.inc: browser.elf
+launch.elf.inc: launch.elf
 	xxd -i $^ > $@
 
-browser.elf: main.o
+launch.elf: main.o
 	$(LD) $^ $(LDADD) -o $@
 
 clean:
