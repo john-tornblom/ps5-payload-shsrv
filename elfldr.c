@@ -457,6 +457,7 @@ elfldr_payload_args(pid_t pid) {
  **/
 static int
 elfldr_prepare_exec(pid_t pid, uint8_t *elf) {
+  uint8_t call_rax[] = {0xff, 0xd0};
   intptr_t entry;
   intptr_t args;
   struct reg r;
@@ -476,7 +477,14 @@ elfldr_prepare_exec(pid_t pid, uint8_t *elf) {
     return -1;
   }
 
-  r.r_rip = entry;
+  if(mdbg_copyin(pid, call_rax, r.r_rip, sizeof(call_rax))) {
+    perror("mdbg_copyin");
+    kill(pid, SIGKILL);
+    pt_detach(pid);
+    return -1;
+  }
+
+  r.r_rax = entry;
   r.r_rcx = elfldr_envp(pid);
   r.r_rdx = r.r_rsi; // argv
   r.r_rsi = r.r_rdi; // argc
