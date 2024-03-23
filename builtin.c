@@ -367,8 +367,8 @@ static builtin_elf_map_t elf_map[] = {
   {"umount", core_elf},
 
   {"http2_get", http2_get_elf},
-  {"browser", launch_elf},
-  {"bigapp", launch_elf},
+  {"browse", launch_elf},
+  {"launch", launch_elf},
 };
 
 

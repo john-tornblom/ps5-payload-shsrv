@@ -38,7 +38,6 @@ int sceSystemServiceLaunchApp(const char* title_id, char** argv,
 			      app_launch_ctx_t* ctx);
 
 
-
 static int
 launch_browser(int argc, char** argv) {
   if(argc < 2) {
@@ -56,7 +55,7 @@ launch_browser(int argc, char** argv) {
 
 
 static int
-launch_bigapp(int argc, char** argv) {
+launch_app(int argc, char** argv) {
   app_launch_ctx_t ctx = {0};
 
   if(argc < 2) {
@@ -87,12 +86,12 @@ main(int argc, char** argv) {
 
   atexit(sceUserServiceTerminate);
 
-  if(!strcmp(argv[0], "browser")) {
+  if(!strcmp(argv[0], "browse")) {
     return launch_browser(argc, argv);
   }
 
-  if(!strcmp(argv[0], "bigapp")) {
-    return launch_bigapp(argc, argv);
+  if(!strcmp(argv[0], "launch")) {
+    return launch_app(argc, argv);
   }
 
   fprintf(stderr, "%s: unknown command\n", argv[0]);
