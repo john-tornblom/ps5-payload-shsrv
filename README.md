@@ -42,12 +42,12 @@ john@localhost:tmp$ echo "hello_sprx.elf" | nc -q0 $PS5_HOST 2323
 ```
 
 ## Building
-Assuming you have the [ps5-payload-sdk][sdk] installed on a POSIX machine,
-the payload can be compiled and deployed using the following commands:
+Assuming you have the [ps5-payload-sdk][sdk] installed on a Debian-flavored
+operating system, the payload can be compiled using the following commands:
 ```console
+john@localhost:ps5-payload-shsrv$ sudo apt-get install xxd
 john@localhost:ps5-payload-shsrv$ export PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk
 john@localhost:ps5-payload-shsrv$ make
-john@localhost:ps5-payload-shsrv$ nc -q0 $PS5_HOST 9021 < shsrv.elf
 ```
 
 ## Limitations
