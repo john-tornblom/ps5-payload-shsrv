@@ -23,7 +23,7 @@ else
     $(error PS5_PAYLOAD_SDK is undefined)
 endif
 
-CFLAGS := -Wall
+CFLAGS := -Wall -Werror
 LDADD  := -lSceLibcInternal -lkernel_sys
 
 SUBDIRS := bundles/core bundles/http2_get bundles/launch
