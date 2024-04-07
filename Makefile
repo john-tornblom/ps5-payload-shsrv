@@ -24,7 +24,6 @@ else
 endif
 
 CFLAGS := -Wall -Werror
-LDADD  := -lSceLibcInternal -lkernel_sys
 
 SUBDIRS := bundles/core bundles/http2_get bundles/launch
 
@@ -45,14 +44,11 @@ shsrv.o: sh.elf.inc
 builtin.o: bundles/core/core.elf.inc bundles/http2_get/http2_get.elf.inc \
            bundles/launch/launch.elf.inc
 
-%.o: %.c
-	$(CC) -c $(CFLAGS) -o $@ $<
-
 shsrv.elf: shsrv.o elfldr.o pt.o
-	$(LD) -o $@ $^ $(LDADD)
+	$(LD) -lkernel_sys -o $@ $^
 
 sh.elf: sh.o builtin.o elfldr.o pt.o
-	$(LD) -o $@ $^ $(LDADD)
+	$(LD) -lkernel_sys -o $@ $^
 
 sh.elf.inc: sh.elf
 	xxd -i $^ > $@

@@ -20,8 +20,8 @@ else
     $(error PS5_PAYLOAD_SDK is undefined)
 endif
 
-CFLAGS += -Wall -O2
-LDADD  += -lSceSystemService -lSceUserService
+CFLAGS := -Wall -Werror
+LDADD  := -lSceSystemService -lSceUserService
 
 all: launch.elf.inc
 
@@ -29,7 +29,7 @@ launch.elf.inc: launch.elf
 	xxd -i $^ > $@
 
 launch.elf: main.o
-	$(LD) $^ $(LDADD) -o $@
+	$(LD) $(LDADD) -o $@ $^
 
 clean:
 	rm -f *.o *.elf *.elf.inc

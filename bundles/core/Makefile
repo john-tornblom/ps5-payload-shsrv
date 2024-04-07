@@ -20,8 +20,7 @@ else
     $(error PS5_PAYLOAD_SDK is undefined)
 endif
 
-CFLAGS += -Wall
-LDADD  += -lkernel_sys
+CFLAGS := -Wall -Werror
 
 SRCS := $(wildcard *.c)
 OBJS := $(SRCS:.c=.o)
@@ -32,12 +31,9 @@ core.elf.inc: core.elf
 	xxd -i $^ > $@
 
 core.elf: $(OBJS)
-	$(LD) -o $@ $^ $(LDADD)
+	$(LD) -lkernel_sys -o $@ $^
 
 clean:
 	rm -f *.o *.elf *.elf.inc
-
-%.o: %.c
-	$(CC) -c $(CFLAGS) -o $@ $<
 
 test:
