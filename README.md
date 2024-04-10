@@ -1,3 +1,7 @@
+# This project has moved: https://github.com/ps5-payload-dev/shsrv
+
+***
+
 # PS5 Shell Payload
 ps5-payload-shsrv is a simple Telnet server that can be executed on a Playstation 5
 that has been jailbroken via the [BD-J][bdj] or the [webkit][webkit] entry points.
